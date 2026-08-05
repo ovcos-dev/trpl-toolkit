@@ -697,6 +697,230 @@
       flex-shrink: 0;
       cursor: grab;
     }
+
+    /* 팀 편성 */
+    #panel-team {
+      max-width: 900px;
+    }
+
+    #panel-team .team-sub-lbl {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 6px;
+    }
+
+    #panel-team .box {
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      border-radius: var(--radius-sm);
+      padding: 8px;
+      min-height: 44px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-content: flex-start;
+    }
+
+    #panel-team .team-chip {
+      background: var(--accent-bg);
+      border: 1px solid rgba(79, 142, 255, .35);
+      border-radius: 6px;
+      padding: 4px 10px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: grab;
+      position: relative;
+      user-select: none;
+    }
+
+    #panel-team .team-chip:active {
+      cursor: grabbing;
+    }
+
+    #panel-team .close-btn {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ef4444;
+      color: #fff;
+      font-size: 14.4px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0;
+      transform: scale(.75);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+      transition: opacity .12s, transform .12s, background .12s;
+    }
+
+    #panel-team .team-chip:hover .close-btn,
+    #panel-team .team-container:hover .close-btn {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    #panel-team .close-btn:hover {
+      background: #dc2626;
+    }
+
+    #panel-team .team-container {
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 6px;
+      min-width: 140px;
+      flex: 1;
+      position: relative;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px;
+    }
+
+    #panel-team .team-title {
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: var(--text);
+      border-radius: 6px;
+      padding: 2px;
+      flex: 0 0 100%;
+    }
+
+    #panel-team .team-title[contenteditable="true"]:focus {
+      background: var(--bg3);
+      outline: 1px dashed var(--border2);
+    }
+
+    #panel-team .team-container .team-chip {
+      width: 100%;
+      box-sizing: border-box;
+      justify-content: center;
+    }
+
+    #panel-team .team-radio-lbl {
+      font-size: 12px;
+      color: var(--text2);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    #panel-team .team-input {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      font-family: inherit;
+    }
+
+    #panel-team .team-input:focus {
+      border-color: var(--accent);
+    }
+
+    #panel-team .addCard-btn,
+    #panel-team .assign-btn,
+    #panel-team .addteam-btn,
+    #panel-team .random-btn {
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 7px 14px;
+      transition: opacity .15s;
+      font-family: inherit;
+    }
+
+    #panel-team .addCard-btn:hover,
+    #panel-team .assign-btn:hover,
+    #panel-team .addteam-btn:hover,
+    #panel-team .random-btn:hover {
+      opacity: .85;
+    }
+
+    #panel-team .addCard-btn {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    #panel-team .assign-btn {
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      color: #fff;
+    }
+
+    #panel-team .addteam-btn {
+      background: var(--bg4);
+      color: var(--text2);
+      border: 1px solid var(--border2);
+    }
+
+    #panel-team .random-btn {
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      color: #fff;
+      padding: 9px 20px;
+      font-size: 13px;
+    }
+
+    #panel-team .team-label {
+      background: var(--accent-bg);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+
+    #panel-team #groupResult p,
+    #panel-team #leftovers p,
+    #panel-team #statusMessage {
+      font-size: 13px;
+      color: var(--text2);
+      margin: 4px 0;
+    }
+
+    #panel-team #historyContainer details {
+      border: 1px dashed var(--border2);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      background: var(--bg3);
+    }
+
+    #panel-team #historyContainer summary {
+      cursor: pointer;
+      color: var(--text2);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    #panel-team .history-item {
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    #panel-team .history-item strong {
+      color: var(--text);
+      font-size: 12px;
+    }
   </style>
 </head>
 
@@ -1179,9 +1403,80 @@
         </div>
       </div>
 
+      <!-- 팀 편성 -->
+      <div class="panel" id="panel-team">
+        <div class="panel-title">팀 편성</div>
+        <div id="team-debug" style="display:none;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#ef4444;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;font-size:12px;white-space:pre-wrap"></div>
+
+        <div class="card">
+          <div class="card-label">전체 인원</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap">
+            <div style="flex:1;min-width:160px">
+              <div class="team-sub-lbl">VI</div>
+              <div id="viCards" class="box"></div>
+            </div>
+            <div style="flex:1;min-width:160px">
+              <div class="team-sub-lbl">GUI</div>
+              <div id="guiCards" class="box"></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px">
+            <label class="team-radio-lbl"><input type="radio" name="groupRadio" value="viCards" checked> VI</label>
+            <label class="team-radio-lbl"><input type="radio" name="groupRadio" value="guiCards"> GUI</label>
+            <input type="text" id="newName" placeholder="이름 추가 (Enter로도 추가됩니다)" class="team-input" onkeydown="if(event.key==='Enter' &amp;&amp; !event.isComposing){event.preventDefault();addCard();}">
+            <button class="addCard-btn" onmousedown="event.preventDefault()" onclick="addCard()">추가</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="assign-btn" onclick="distributeMembersToTeams()">인원배치</button>
+            <button class="addteam-btn" onclick="returnAllToOriginal()">전체인원 복귀</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label" style="display:flex;justify-content:space-between;align-items:center">
+            <span>팀 목록</span>
+            <span style="display:flex;gap:6px">
+              <button class="addteam-btn" onclick="addTeam('VI')">VI 팀 추가</button>
+              <button class="addteam-btn" onclick="addTeam('GUI')">GUI 팀 추가</button>
+            </span>
+          </div>
+          <div id="teams" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-label" style="display:flex;justify-content:space-between;align-items:center">
+            <span>조 편성 결과</span>
+            <span id="countDisplay" style="font-size:11px;color:var(--text3);font-weight:500;text-transform:none">🔄 0회</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <button class="random-btn" onclick="generateGroups(2)">2인팟</button>
+            <button class="random-btn" onclick="generateGroups(3)">3인팟</button>
+            <button class="random-btn" onclick="generateGroups(4)">4인팟</button>
+            <button class="random-btn" onclick="generateGroups(5)">5인팟</button>
+            <button class="addteam-btn" onclick="clearGroups()">결과 초기화</button>
+          </div>
+          <div id="statusMessage"></div>
+          <div id="groupResult"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">깍두기</div>
+          <div id="leftovers"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">과거 결과 (최대 10개)</div>
+          <div id="historyContainer"></div>
+        </div>
+      </div>
+
     </main>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
   <div
     style="position:fixed;bottom:14px;right:18px;font-size:11px;color:var(--text3);font-style:italic;pointer-events:none;letter-spacing:.02em">
     made by ovcos©</div>
@@ -1200,6 +1495,7 @@
       { tab: 'speed', icon: '🚗', label: '속도 변환' },
       { tab: 'work', icon: '🕐', label: '퇴근 시간' },
       { tab: 'mm', icon: '👥', label: 'MM 산정' },
+      { tab: 'team', icon: '🎲', label: '팀 편성' },
     ];
 
     let tabOrder = ALL_TABS.map(t => t.tab);
@@ -1803,7 +2099,7 @@
 
     // --- 입력필드 focus/blur (클릭하면 비워지고, 나가면 복원) ---
     function applyFocusClear() {
-      const EXCLUDE_IDS = ['path-input', 'hex-in', 'server-mac', 'dpi-custom'];
+      const EXCLUDE_IDS = ['path-input', 'hex-in', 'server-mac', 'dpi-custom', 'newName'];
       const EXCLUDE_TYPES = ['time', 'color', 'range'];
       document.querySelectorAll('input[type=number], input[type=text]').forEach(input => {
         if (EXCLUDE_IDS.includes(input.id)) return;
@@ -2338,6 +2634,396 @@
           renderResults();
         });
       });
+    })();
+
+    // --- 팀 편성 ---
+    (function () {
+      let teamCount = 0;
+      let randomCount = 0;
+      const viCards = document.getElementById('viCards');
+      const guiCards = document.getElementById('guiCards');
+      const teamsContainer = document.getElementById('teams');
+      const groupResult = document.getElementById('groupResult');
+      const leftoversBox = document.getElementById('leftovers');
+      const statusMessage = document.getElementById('statusMessage');
+      const countDisplay = document.getElementById('countDisplay');
+
+      const initialMembers = [
+        { name: "경록", group: "VI" },
+        { name: "경호", group: "VI" },
+        { name: "혜민", group: "VI" },
+        { name: "현지", group: "GUI" },
+        { name: "민경", group: "GUI" },
+        { name: "선진", group: "GUI" },
+        { name: "민수", group: "GUI" },
+        { name: "지수", group: "GUI" },
+        { name: "민주", group: "GUI" },
+        { name: "단비", group: "GUI" }
+      ];
+
+      function showTeamDebug(err) {
+        const el = document.getElementById('team-debug');
+        if (!el) return;
+        el.style.display = 'block';
+        el.textContent = '오류 발생: ' + (err && err.message ? err.message : err);
+      }
+
+      function createCard(name, group = null) {
+        const card = document.createElement('div');
+        card.className = 'team-chip';
+        card.setAttribute('data-name', name);
+
+        let originalGroup = group;
+        if (!originalGroup) {
+          originalGroup = document.querySelector('input[name="groupRadio"]:checked').value === "viCards" ? "VI" : "GUI";
+        }
+        card.setAttribute('data-original-group', originalGroup);
+
+        if (group !== null) card.setAttribute('data-team', group);
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = name;
+
+        const closeBtn = document.createElement('span');
+        closeBtn.textContent = '×';
+        closeBtn.className = 'close-btn';
+        closeBtn.onclick = (e) => {
+          e.stopPropagation();
+          const parent = card.parentElement;
+          if (parent === viCards || parent === guiCards) {
+            card.remove();
+          } else {
+            moveCardToOriginalGroup(card);
+          }
+        };
+
+        card.appendChild(nameSpan);
+        card.appendChild(closeBtn);
+        return card;
+      }
+
+      window.addCard = function () {
+        try {
+          const nameInput = document.getElementById('newName');
+          const name = nameInput.value.trim();
+          if (!name) return;
+          const group = document.querySelector('input[name="groupRadio"]:checked').value;
+          const card = createCard(name, group === "viCards" ? "VI" : "GUI");
+          if (group === "viCards") {
+            viCards.appendChild(card);
+          } else {
+            guiCards.appendChild(card);
+          }
+          nameInput.value = '';
+        } catch (e) {
+          showTeamDebug(e);
+        }
+      };
+
+      function safeSortable(el, opts) {
+        try {
+          if (typeof Sortable !== 'undefined') return Sortable.create(el, opts);
+        } catch (e) {
+          console.warn('Sortable 로드 실패로 드래그 기능이 제한됩니다.', e);
+        }
+        return null;
+      }
+
+      safeSortable(viCards, { group: 'shared', animation: 150, draggable: '.team-chip' });
+      safeSortable(guiCards, { group: 'shared', animation: 150, draggable: '.team-chip' });
+
+      safeSortable(teamsContainer, {
+        animation: 180,
+        draggable: '.team-container'
+      });
+
+      function moveCardToOriginalGroup(card) {
+        card.removeAttribute('data-team');
+        const originalGroup = card.getAttribute('data-original-group');
+        if (originalGroup === "VI") {
+          viCards.appendChild(card);
+        } else if (originalGroup === "GUI") {
+          guiCards.appendChild(card);
+        }
+      }
+
+      let viCount = 1;
+      let guiCount = 1;
+      window.addTeam = function (prefix = "팀") {
+       try {
+        let name;
+        if (prefix === "VI") {
+          name = `VI ${viCount++}`;
+        } else if (prefix === "GUI") {
+          name = `GUI ${guiCount++}`;
+        } else {
+          name = `팀 ${teamCount + 1}`;
+        }
+        const container = document.createElement('div');
+        container.className = 'team-container';
+
+        const title = document.createElement('div');
+        title.className = 'team-title';
+        title.textContent = name;
+        title.setAttribute('contenteditable', 'true');
+        title.addEventListener('keydown', e => e.key === 'Enter' && e.preventDefault());
+        title.addEventListener('blur', () => {
+          title.textContent = title.textContent.trim() || `팀 ${teamCount + 1}`;
+        });
+
+        const closeBtn = document.createElement('span');
+        closeBtn.textContent = '×';
+        closeBtn.className = 'close-btn';
+        closeBtn.onclick = (e) => {
+          e.stopPropagation();
+          const cards = container.querySelectorAll('.team-chip');
+          cards.forEach(card => {
+            card.removeAttribute('data-team');
+            moveCardToOriginalGroup(card);
+          });
+          container.remove();
+        };
+
+        container.appendChild(closeBtn);
+        container.appendChild(title);
+        teamsContainer.appendChild(container);
+
+        safeSortable(container, {
+          group: 'shared',
+          animation: 150,
+          draggable: '.team-chip',
+          filter: '.team-title, .close-btn',
+          preventOnFilter: false,
+          onAdd: evt => evt.item.setAttribute('data-team', teamCount),
+          onRemove: evt => {
+            evt.item.removeAttribute('data-team');
+            const fromContainer = evt.from;
+            setTimeout(() => {
+              if (fromContainer.classList.contains('team-container') && fromContainer.querySelectorAll('.team-chip').length === 0) {
+                fromContainer.remove();
+              }
+            }, 10);
+          }
+        });
+
+        teamCount++;
+       } catch (e) {
+         showTeamDebug(e);
+       }
+      };
+
+      window.addEventListener('DOMContentLoaded', () => {
+       try {
+        ['VI 1', 'VI 2', 'GUI 1', 'GUI 2', 'GUI 3'].forEach(name => window.addTeam(name.startsWith('VI') ? 'VI' : 'GUI'));
+        initialMembers.forEach(member => {
+          if (member.group === "VI") {
+            viCards.appendChild(createCard(member.name, "VI"));
+          } else if (member.group === "GUI") {
+            guiCards.appendChild(createCard(member.name, "GUI"));
+          }
+        });
+       } catch (e) {
+         showTeamDebug(e);
+       }
+      });
+
+      window.distributeMembersToTeams = function () {
+       try {
+        const viTeamBoxes = Array.from(document.querySelectorAll('#panel-team .team-container')).filter(container =>
+          container.querySelector('.team-title').textContent.trim().startsWith('VI')
+        );
+        const guiTeamBoxes = Array.from(document.querySelectorAll('#panel-team .team-container')).filter(container =>
+          container.querySelector('.team-title').textContent.trim().startsWith('GUI')
+        );
+
+        const viCardsArr = Array.from(viCards.querySelectorAll('.team-chip'));
+        const guiCardsArr = Array.from(guiCards.querySelectorAll('.team-chip'));
+
+        viCardsArr.forEach((card, i) => {
+          if (viTeamBoxes.length > 0) {
+            viTeamBoxes[i % viTeamBoxes.length].appendChild(card);
+          }
+        });
+        guiCardsArr.forEach((card, i) => {
+          if (guiTeamBoxes.length > 0) {
+            guiTeamBoxes[i % guiTeamBoxes.length].appendChild(card);
+          }
+        });
+       } catch (e) {
+         showTeamDebug(e);
+       }
+      };
+
+      window.returnAllToOriginal = function () {
+       try {
+        document.querySelectorAll('#panel-team .team-chip').forEach(card => {
+          const originalGroup = card.getAttribute('data-original-group');
+          if (originalGroup === 'VI') {
+            viCards.appendChild(card);
+          } else if (originalGroup === 'GUI') {
+            guiCards.appendChild(card);
+          }
+        });
+       } catch (e) {
+         showTeamDebug(e);
+       }
+      };
+
+      function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+      }
+
+      // 팀 다양성을 우선하는 배치를 한 번 시도해서 {result, leftovers}를 반환.
+      // "아직 배치 못한 인원이 가장 많이 남은 팀"부터 "가장 인원이 적게 찬,
+      // 아직 그 팀이 없는 그룹"에 우선 배치한다 — 인원이 많은 팀을 먼저
+      // 여러 그룹에 골고루 흩어놔야 인원이 적은 팀들이 남은 자리에 무리 없이
+      // 들어갈 수 있다.
+      function packOnce(peopleList, size, numGroups) {
+        const byTeam = {};
+        peopleList.forEach(p => {
+          (byTeam[p.team] = byTeam[p.team] || []).push(p);
+        });
+        Object.values(byTeam).forEach(arr => shuffleArray(arr));
+
+        const groups = Array.from({ length: numGroups }, () => ({ members: [], teams: new Set() }));
+
+        let remainingTeams = Object.keys(byTeam).filter(t => byTeam[t].length > 0);
+        while (remainingTeams.length > 0) {
+          remainingTeams.sort((a, b) => byTeam[b].length - byTeam[a].length || (Math.random() - 0.5));
+          let assignedSomething = false;
+          for (const team of remainingTeams) {
+            if (byTeam[team].length === 0) continue;
+            const eligible = groups.filter(g => g.members.length < size && !g.teams.has(team));
+            if (eligible.length === 0) continue;
+            eligible.sort((a, b) => a.members.length - b.members.length || (Math.random() - 0.5));
+            const target = eligible[0];
+            target.members.push(byTeam[team].pop());
+            target.teams.add(team);
+            assignedSomething = true;
+          }
+          remainingTeams = remainingTeams.filter(t => byTeam[t].length > 0);
+          if (!assignedSomething) break;
+        }
+
+        const result = groups.filter(g => g.members.length === size).map(g => g.members);
+        const leftovers = [];
+        groups.forEach(g => { if (g.members.length < size) leftovers.push(...g.members); });
+        Object.values(byTeam).forEach(arr => leftovers.push(...arr));
+        return { result, leftovers };
+      }
+
+      window.generateGroups = function (size) {
+       try {
+        randomCount++;
+        countDisplay.textContent = `🔄 ${randomCount}회`;
+
+        const teams = [...document.querySelectorAll('#panel-team .team-container')];
+        const people = [];
+        teams.forEach((teamEl, i) => {
+          const cards = teamEl.querySelectorAll('.team-chip');
+          cards.forEach(card => {
+            people.push({ name: card.getAttribute('data-name'), team: i });
+          });
+        });
+
+        groupResult.innerHTML = '';
+        leftoversBox.innerHTML = '';
+
+        // 배치 우선순위 방식은 무작위 순서에 따라 아주 가끔 최적이 아닐 수
+        // 있어서, 여러 번 계산해보고 그 중 깍두기가 가장 적은 결과를 채택한다.
+        const numGroups = Math.floor(people.length / size);
+        let best = null;
+        const TRIES = 25;
+        for (let t = 0; t < TRIES; t++) {
+          const attempt = packOnce(people, size, numGroups);
+          if (!best || attempt.leftovers.length < best.leftovers.length) {
+            best = attempt;
+            if (best.leftovers.length === 0) break;
+          }
+        }
+        const { result, leftovers } = best || { result: [], leftovers: people };
+
+        result.forEach((group, idx) => {
+          const p = document.createElement('p');
+          const label = document.createElement('span');
+          label.className = 'team-label';
+          label.textContent = `${idx + 1} group`;
+          p.appendChild(label);
+          group.forEach((ppl, i) => {
+            const span = document.createElement('span');
+            span.textContent = ppl.name;
+            p.appendChild(span);
+            if (i < group.length - 1) p.appendChild(document.createTextNode(', '));
+          });
+          groupResult.appendChild(p);
+        });
+
+        if (leftovers.length > 0) {
+          const p = document.createElement('p');
+          p.textContent = `⚠️ 깍두기 😭 ${leftovers.map(p => p.name).join(', ')}`;
+          leftoversBox.appendChild(p);
+        }
+
+        saveHistory(groupResult, leftoversBox, randomCount);
+       } catch (e) {
+         showTeamDebug(e);
+       }
+      };
+
+      function saveHistory(resultHTML, leftoversHTML, roundCount) {
+        const historyContainer = document.getElementById('historyContainer');
+
+        const archivedItem = document.createElement('div');
+        archivedItem.className = 'history-item';
+
+        const archivedTitle = document.createElement('div');
+        archivedTitle.innerHTML = `<strong>🔄 ${roundCount}회 결과</strong>`;
+        archivedTitle.style.marginBottom = '6px';
+        archivedItem.appendChild(archivedTitle);
+        archivedItem.appendChild(resultHTML.cloneNode(true));
+        archivedItem.appendChild(leftoversHTML.cloneNode(true));
+
+        let archivedContainer = historyContainer.querySelector('details.archived-history');
+        if (!archivedContainer) {
+          archivedContainer = document.createElement('details');
+          archivedContainer.className = 'archived-history';
+          archivedContainer.open = true;
+
+          const summary = document.createElement('summary');
+          summary.textContent = '📁 닫기';
+          archivedContainer.appendChild(summary);
+          archivedContainer.addEventListener('toggle', () => {
+            summary.textContent = archivedContainer.open ? '📁 닫기' : '📁 펼치기';
+          });
+
+          historyContainer.innerHTML = '';
+          historyContainer.appendChild(archivedContainer);
+        }
+
+        archivedContainer.insertBefore(archivedItem, archivedContainer.children[1]);
+
+        const existingItems = archivedContainer.querySelectorAll('.history-item');
+        if (existingItems.length > 10) {
+          archivedContainer.removeChild(existingItems[existingItems.length - 1]);
+        }
+      }
+
+      window.clearGroups = function () {
+       try {
+        groupResult.innerHTML = '';
+        leftoversBox.innerHTML = '';
+        statusMessage.innerHTML = '';
+        countDisplay.textContent = '🔄 0회';
+        randomCount = 0;
+        const historyContainer = document.getElementById('historyContainer');
+        if (historyContainer) historyContainer.innerHTML = '';
+       } catch (e) {
+         showTeamDebug(e);
+       }
+      };
     })();
 
   </script>
