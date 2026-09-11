@@ -92,8 +92,16 @@ button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cur
 .card:hover{background:#122060;border-color:#2563eb}
 .card:active{cursor:grabbing}
 .card.dragging{opacity:.2}
+
+/* 그룹별 색상 (JS가 컬러피커 값으로 CSS 변수를 채움, 기본값은 fallback) */
+.card.grp-tramp{background:var(--grp-tramp-bg,#091640);border-color:var(--grp-tramp-border,#163a8a);color:var(--grp-tramp-text,#7eb8f7)}
+.card.grp-tramp:hover{background:var(--grp-tramp-bg-h,#122060);border-color:var(--grp-tramp-border-h,#2563eb)}
+.card.grp-paprika{background:var(--grp-paprika-bg,#3a1408);border-color:var(--grp-paprika-border,#a8471f);color:var(--grp-paprika-text,#ffb37e)}
+.card.grp-paprika:hover{background:var(--grp-paprika-bg-h,#4a1c0c);border-color:var(--grp-paprika-border-h,#d9601f)}
+
 .card.selected{background:#162a00;border-color:#4ade80;color:#86efac}
 .card.selected:hover{background:#1e3a00}
+  
 .selmode .card{cursor:pointer}
 .del-btn{
   position:absolute;top:2px;right:3px;
@@ -121,7 +129,15 @@ button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cur
 .pool-lbl-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px;flex-wrap:wrap}
 .pool-lbl{font-size:11px;color:#3a4f6a}
 .pool-inner{display:flex;flex-direction:column;gap:10px}
-.pool-group-lbl{font-size:10px;color:#4a6a8a;font-weight:600;margin-bottom:5px}
+.pool-group-lbl-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.pool-group-lbl{font-size:10px;color:#4a6a8a;font-weight:600}
+.grp-swatch{
+  width:14px;height:14px;padding:0;border:1px solid rgba(255,255,255,.2);
+  border-radius:50%;background:none;cursor:pointer;overflow:hidden;
+}
+.grp-swatch::-webkit-color-swatch-wrapper{padding:0}
+.grp-swatch::-webkit-color-swatch{border:none;border-radius:50%}
+.grp-swatch::-moz-color-swatch{border:none;border-radius:50%}
 .pool-group-row{display:flex;flex-direction:column;gap:6px;min-height:28px}
 .pool-slot{width:100%;height:28px;position:relative}
 .pool-slot.over .card{border-color:#3b82f6!important;background:rgba(59,130,246,.18)!important}
@@ -220,7 +236,7 @@ let SNAP = 10;
 let FP_W = 670;
 let FP_H = 900;
 const HDR = 22, PAD = 4, MIN_W = 60, MIN_H = 40;
-const LS_KEY = 'vi-seating-v9';
+const LS_KEY = 'vi-seating-v10';
 
 // ── 초기 데이터 (그룹별) ─────────────────────────────────────────────────
 const NAMES = {
@@ -228,6 +244,34 @@ const NAMES = {
   '파프리카': ['김민정','박지혜','박현종','안지아','하예원','허소연'],
 };
 const GROUP_ORDER = ['트램폴린','파프리카']; // 풀 영역 표시 순서
+const GROUP_KEY = {'트램폴린':'tramp','파프리카':'paprika'}; // CSS 변수/저장용 내부 키
+
+// 그룹별 기준 색상 (컬러피커로 선택한 값). 배경/테두리/글자/hover는 이 값에서 자동 계산됨
+let GROUP_COLORS = { tramp:'#2563eb', paprika:'#d9601f' };
+
+// ── 색상 유틸 ────────────────────────────────────────────────────────────
+function hexToRgb(hex){
+  const h=hex.replace('#','');
+  return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];
+}
+function rgbToHex(r,g,b){
+  const c=v=>Math.round(clamp(v,0,255)).toString(16).padStart(2,'0');
+  return '#'+c(r)+c(g)+c(b);
+}
+function mixHex(hex,target,amt){ // hex를 target 쪽으로 amt(0~1) 비율만큼 섞음
+  const [r1,g1,b1]=hexToRgb(hex), [r2,g2,b2]=hexToRgb(target);
+  return rgbToHex(r1+(r2-r1)*amt, g1+(g2-g1)*amt, b1+(b2-b1)*amt);
+}
+
+// 선택한 기준색(baseHex)으로 배경/테두리/글자/hover 색을 계산해 CSS 변수로 적용
+function applyGroupColor(key, baseHex){
+  const root=document.documentElement.style;
+  root.setProperty(`--grp-${key}-bg`,        mixHex(baseHex,'#000000',0.86));
+  root.setProperty(`--grp-${key}-bg-h`,      mixHex(baseHex,'#000000',0.75));
+  root.setProperty(`--grp-${key}-border`,    baseHex);
+  root.setProperty(`--grp-${key}-border-h`,  mixHex(baseHex,'#ffffff',0.18));
+  root.setProperty(`--grp-${key}-text`,      mixHex(baseHex,'#ffffff',0.38));
+}
 const DEF_DESKS = [
   // 좌측 열 (가로형 2인 데스크 × 3줄 + 1인 데스크 1개)
   {no:1, x:0,  y:0,  w:130, h:60},
@@ -367,7 +411,8 @@ function saveState() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
       desks:Object.values(desks),s2c,c2s,cNm,cGrp,
-      deskUid,slotUid,cN,snap:SNAP,fpW:FP_W,fpH:FP_H
+      deskUid,slotUid,cN,snap:SNAP,fpW:FP_W,fpH:FP_H,
+      groupColors:GROUP_COLORS
     }));
   } catch(e){}
 }
@@ -380,7 +425,8 @@ function loadState() {
     desks={}; (d.desks||[]).forEach(dk=>desks[dk.id]=dk);
     s2c=d.s2c||{}; c2s=d.c2s||{}; cNm=d.cNm||{}; cGrp=d.cGrp||{};
     deskUid=d.deskUid||0; slotUid=d.slotUid||0; cN=d.cN||0;
-    SNAP=d.snap||10; FP_W=d.fpW||670; FP_H=d.fpH||900;
+    SNAP=d.snap||10; FP_W=d.fpW||670; FP_H=d.fpH||840;
+    if(d.groupColors) GROUP_COLORS={...GROUP_COLORS, ...d.groupColors};
     return Object.keys(desks).length>0;
   } catch(e){return false;}
 }
@@ -396,7 +442,18 @@ function render() {
   GROUP_ORDER.forEach(grp=>{
     const ids=Object.entries(c2s).filter(([id,v])=>v==='pool'&&cGrp[id]===grp).map(([id])=>id);
     const grpWrap=ce('div','pool-group');
+
+    const lblRow=ce('div','pool-group-lbl-row');
     const grpLbl=ce('div','pool-group-lbl'); grpLbl.textContent=`${grp} (${ids.length})`;
+    const key=GROUP_KEY[grp];
+    const swatch=ce('input','grp-swatch');
+    swatch.type='color';
+    swatch.value=GROUP_COLORS[key];
+    swatch.title=`${grp} 카드 색상 변경`;
+    swatch.oninput=e=>{ applyGroupColor(key, e.target.value); };
+    swatch.onchange=e=>{ GROUP_COLORS[key]=e.target.value; saveState(); };
+    lblRow.append(grpLbl, swatch);
+
     const grpRow=ce('div','pool-group-row');
     ids.forEach(id=>{
       const w=ce('div','pool-slot');
@@ -405,7 +462,7 @@ function render() {
       dropOn(w,'pool_'+id);
       grpRow.appendChild(w);
     });
-    grpWrap.append(grpLbl,grpRow);
+    grpWrap.append(lblRow,grpRow);
     pi.appendChild(grpWrap);
   });
   updateSelUI();
@@ -637,7 +694,8 @@ function updateDeskSelUI(){
 
 // ── 이름 카드 ─────────────────────────────────────────────────────────────
 function mkCard(id,vert=false){
-  const el=ce('div','card'+(vert?' vert':'')+(sel.has(id)?' selected':''));
+  const grpCls = cGrp[id]==='파프리카' ? ' grp-paprika' : (cGrp[id]==='트램폴린' ? ' grp-tramp' : '');
+  const el=ce('div','card'+(vert?' vert':'')+grpCls+(sel.has(id)?' selected':''));
   el.dataset.cid=id; el.draggable=!selMode;
   const sp=document.createElement('span');
   sp.textContent=cNm[id]; el.appendChild(sp);
@@ -904,7 +962,9 @@ function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 function ce(tag,cls) {const e=document.createElement(tag);if(cls)e.className=cls;return e;}
 function st(e,o)     {Object.assign(e.style,o);}
 
+// ── 부트 ─────────────────────────────────────────────────────────────────
 if(!loadState()) initState();
+Object.entries(GROUP_COLORS).forEach(([key,hex])=>applyGroupColor(key,hex));
 render();
 </script>
 </body>
