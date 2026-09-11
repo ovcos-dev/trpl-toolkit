@@ -62,13 +62,23 @@ button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cur
   padding:0 4px;cursor:grab; /* 이동 가능 영역 표시 */
 }
 .dg-lbl{font-size:9px;color:rgba(255,255,255,.28);flex:1;outline:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.dg-btns{display:flex;gap:2px;flex-shrink:0}
-.dg-btn{width:18px;height:18px;border:none;border-radius:3px;background:rgba(255,255,255,.08);color:#aab;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;font-family:inherit;transition:background .12s}
+.dg-btns{display:flex;gap:1px;flex-shrink:0}
+.dg-btn{width:16px;height:16px;border:none;border-radius:3px;background:rgba(255,255,255,.08);color:#aab;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;font-family:inherit;transition:background .12s}
 .dg-btn:hover{background:rgba(255,255,255,.2)}
 .dg-dup{color:#7eb8f7}.dg-dup:hover{background:rgba(30,80,180,.35)!important}
 .dg-del{color:#f99}.dg-del:hover{background:rgba(180,30,30,.45)!important}
 .dg-body{padding:4px;height:calc(100% - 22px)}
 .dg-resize{position:absolute;bottom:0;right:0;width:16px;height:16px;cursor:se-resize;z-index:10;background:rgba(255,255,255,.12);clip-path:polygon(100% 0,100% 100%,0 100%);transition:background .12s}
+
+/* 테이블 번호 뱃지 (좌하단 코너 고정, 가로/세로 상관없이 동일 위치) */
+.dg-no{
+  position:absolute;bottom:2px;left:2px;
+  font-size:10px;line-height:1;font-weight:600;font-family:inherit;
+  color:rgba(255,255,255,.55);
+  background:rgba(0,0,0,.45);
+  padding:2px 5px;border-radius:3px;
+  pointer-events:none;z-index:4;
+}
 .dg-resize:hover{background:rgba(100,180,255,.45)}
 .dg-ghost{position:absolute;border:2px dashed rgba(100,180,255,.55);background:rgba(59,130,246,.06);border-radius:3px;pointer-events:none;z-index:199}
 
@@ -180,13 +190,16 @@ button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cur
     <button class="btn-redo" id="btnRedo" onclick="redo()" disabled title="다시실행 (Ctrl+Y)">↪</button>
     <button class="btn-reset"  onclick="doReset()">↺ 초기화</button>
     <button class="btn-reset"  onclick="doFullReset()">⟲ 레이아웃 초기화</button>
-    <button class="btn-reset"  onclick="snapAllDesks()" title="모든 데스크의 위치·크기를 현재 그리드에 맞춰 정렬">▦ 그리드 정렬</button>
+    <button class="btn-reset"  onclick="saveAsNewDefault()" title="현재 배치·카드 위치를 새 기본값(HTML 파일)으로 저장">💾 기본값으로 저장</button>
     <button id="btnSel" class="btn-selmode" onclick="toggleSel()">☑ 인원카드 선택모드</button>
     <button class="btn-delall" onclick="deleteAll()">전체 삭제</button>
     <div class="ctrl-group">
       <label>그리드</label>
-      <input class="ctrl-inp" id="snapInput" type="number" min="10" max="100" step="10" value="20"
-             onkeydown="handleCtrlKey(event, 'snap')" onblur="handleCtrlBlur('snap')" title="스냅 단위 (px 단위)"> px
+      <select class="ctrl-inp" id="snapInput" onchange="updateSnap(+this.value)" title="스냅 단위 (px 단위)">
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="30">30</option>
+      </select> px
       <span class="ctrl-sep">│</span>
       <label>캔버스</label>
       <input class="ctrl-inp" id="fpWInput" type="number" min="1" max="500" step="1" value="60"
@@ -237,23 +250,29 @@ button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cur
 
 <script>
 // ── 설정 ─────────────────────────────────────────────────────────────────
+// @@SNAP_DEFAULTS_START@@
 let SNAP = 10;
 let FP_W = 600;   // 60칸 × 10px
 let FP_H = 900;   // 90칸 × 10px
+// @@SNAP_DEFAULTS_END@@
 const HDR = 22, PAD = 4, MIN_W = 60, MIN_H = 40;
 const LS_KEY = 'vi-seating-v12';
   
 
 // ── 초기 데이터 (그룹별) ─────────────────────────────────────────────────
+// @@NAMES_START@@
 const NAMES = {
   '트램폴린': ['박경호','고민수','권경록','김민경','김민주','김현지','문선진','박단비','양혜민','정직원A','정직원B','프리랜서'],
   '파프리카': ['김민정','박지혜','박현종','안지아','하예원','허소연'],
 };
 const GROUP_ORDER = ['트램폴린','파프리카']; // 풀 영역 표시 순서
+// @@NAMES_END@@
 const GROUP_KEY = {'트램폴린':'tramp','파프리카':'paprika'}; // CSS 변수/저장용 내부 키
 
 // 그룹별 기준 색상 (컬러피커로 선택한 값). 배경/테두리/글자/hover는 이 값에서 자동 계산됨
+// @@GROUP_COLORS_START@@
 let GROUP_COLORS = { tramp:'#A88861', paprika:'#8A6799' };
+// @@GROUP_COLORS_END@@
 
 // ── 색상 유틸 ────────────────────────────────────────────────────────────
 function hexToRgb(hex){
@@ -278,6 +297,7 @@ function applyGroupColor(key, baseHex){
   root.setProperty(`--grp-${key}-border-h`,  mixHex(baseHex,'#ffffff',0.18));
   root.setProperty(`--grp-${key}-text`,      mixHex(baseHex,'#ffffff',0.38));
 }
+// @@DEF_DESKS_START@@
 const DEF_DESKS = [
   // 좌측 열 (가로형 2인 데스크 × 3줄 + 1인 데스크 1개) — 변경 없음 (좌측 x=0 기준이라 영향 없음)
   {no:1, x:0,  y:0,  w:120, h:60},
@@ -304,8 +324,10 @@ const DEF_DESKS = [
   {no:19,x:540,y:660,w:60, h:120},
   {no:20,x:540,y:780,w:60, h:120},
 ];
+// @@DEF_DESKS_END@@
 
 // 테이블 번호 → 초기 배치 인원 (화면에 표시되지 않는 내부 매핑)
+// @@SEAT_ASSIGN_START@@
 const SEAT_ASSIGN = {
   1:'박지혜', 2:'안지아',
   3:'하예원', 4:'허소연',
@@ -320,6 +342,7 @@ const SEAT_ASSIGN = {
   20:'권경록',
   // 번호가 없는 3,8,12,17,19번 데스크는 빈 자리로 시작
 };
+// @@SEAT_ASSIGN_END@@
 
 // ── 상태 ─────────────────────────────────────────────────────────────────
 let desks={},deskUid=0,slotUid=0;
@@ -386,7 +409,7 @@ function initState() {
   // 테이블 번호(no) → 데스크 id의 첫 번째(유일한) 슬롯 id 매핑
   const noToSlot = {};
   DEF_DESKS.forEach(d=>{
-    const did = mkDesk(d.x,d.y,d.w,d.h,'',d.no);
+    const did = mkDesk(d.x,d.y,d.w,d.h,d.label||'',d.no);
     if(d.no!=null) noToSlot[d.no] = desks[did].slots[0];
   });
 
@@ -412,6 +435,12 @@ function mkDesk(x,y,w,h,label='',no=null) {
   return id;
 }
 
+// 현재 사용 중인 테이블 번호 중 최댓값+1을 반환 (복제 시 자동 번호 부여용)
+function nextTableNo(){
+  const nos = Object.values(desks).map(d=>d.no).filter(n=>n!=null);
+  return nos.length ? Math.max(...nos)+1 : 1;
+}
+
 // ── localStorage ─────────────────────────────────────────────────────────
 function saveState() {
   try {
@@ -431,7 +460,9 @@ function loadState() {
     desks={}; (d.desks||[]).forEach(dk=>desks[dk.id]=dk);
     s2c=d.s2c||{}; c2s=d.c2s||{}; cNm=d.cNm||{}; cGrp=d.cGrp||{};
     deskUid=d.deskUid||0; slotUid=d.slotUid||0; cN=d.cN||0;
+// @@LOADSTATE_FALLBACK_START@@
     SNAP=d.snap||10; FP_W=d.fpW||600; FP_H=d.fpH||900;
+// @@LOADSTATE_FALLBACK_END@@
     if(d.groupColors) GROUP_COLORS={...GROUP_COLORS, ...d.groupColors};
     return Object.keys(desks).length>0;
   } catch(e){return false;}
@@ -490,7 +521,6 @@ function buildDesk(d) {
   const lbl=ce('span','dg-lbl');
   lbl.textContent=d.label||'';
   lbl.title='더블클릭: 이름 변경';
-  lbl.ondblclick=e=>{e.stopPropagation();editLbl(lbl,d.id);};
   const bts=ce('div','dg-btns');
   bts.appendChild(dgBtn('↻','회전',()=>rotDesk(d.id)));
   const dup=dgBtn('⊕','복제',()=>dupeDesk(d.id));
@@ -500,6 +530,12 @@ function buildDesk(d) {
   db.classList.add('dg-del');
   bts.appendChild(db);
   hdr.append(lbl,bts);
+  // 라벨 대신 헤더 전체(버튼 제외)에서 더블클릭 감지 → 클릭 위치에 덜 민감해짐
+  hdr.ondblclick=e=>{
+    if(e.target.closest('.dg-btn')) return;
+    e.stopPropagation();
+    editLbl(lbl,d.id);
+  };
   el.appendChild(hdr);
 
   // 슬롯 (1개)
@@ -513,6 +549,13 @@ function buildDesk(d) {
   dropOn(slEl,sid);
   body.appendChild(slEl);
   el.appendChild(body);
+
+  // 테이블 번호 뱃지 (없으면 표시 안 함 — 복제된 데스크 등)
+  if(d.no!=null){
+    const noEl=ce('div','dg-no');
+    noEl.textContent=d.no;
+    el.appendChild(noEl);
+  }
 
   const rh=ce('div','dg-resize');
   el.appendChild(rh);
@@ -554,10 +597,10 @@ function deskDrag(el, did){
   const DRAG_THRESHOLD = 4; // 이 픽셀 이상 움직여야 "드래그"로 판정 (클릭 떨림 방지)
 
   el.addEventListener('mousedown',e=>{
-    // 버튼, 크기조절 핸들, 카드, 편집 중인 요소 클릭 시에만 이동 제외 (헤더는 다시 이동 가능)
+    // 버튼, 크기조절 핸들, 카드, 편집 중인 요소, 라벨(더블클릭 편집 전용) 클릭 시 이동 제외
     if(e.target.closest('.dg-btn') || e.target.closest('.dg-resize') ||
        e.target.closest('.card') || e.target.closest('[contenteditable="true"]') ||
-       e.target.closest('.ctrl-inp')) return;
+       e.target.closest('.ctrl-inp') || e.target.closest('.dg-lbl')) return;
 
     e.preventDefault(); e.stopPropagation();
 
@@ -685,7 +728,7 @@ function dupeDesk(did){
   const d=desks[did];
   const nx=clamp(d.x+SNAP*2,0,FP_W-d.w);
   const ny=clamp(d.y+SNAP*2,0,FP_H-d.h);
-  mkDesk(nx,ny,d.w,d.h,d.label); // no 생략 → null, 복제본은 초기 배치용 번호를 갖지 않음
+  mkDesk(nx,ny,d.w,d.h,d.label,nextTableNo()); // 현재 최대 번호+1을 자동 부여
   render();
 }
 
@@ -722,7 +765,8 @@ function mkCard(id,vert=false){
       }
       updateSelUI();
       document.querySelectorAll('.card').forEach(c=>c.classList.toggle('selected',sel.has(c.dataset.cid)));
-    } else {startEdit(el,id,vert);}
+    }
+    // 선택모드가 아닐 때 클릭해도 이름 편집으로 진입하지 않음
   });
   el.addEventListener('dragstart',ev=>{
     if(selMode){ev.preventDefault();return;}
@@ -806,6 +850,13 @@ function updateSelUI(){
 let rb={on:false,x0:0,y0:0,el:null,mode:'',ctrl:false};
 
 document.getElementById('canvas').addEventListener('mousedown',e=>{
+  // 편집 중인 라벨(contentEditable)이 있으면 먼저 입력을 완료(blur)시키고,
+  // 이 클릭 자체는 선택/러버밴드 시작으로 이어지지 않게 함
+  const editing = document.activeElement;
+  if(editing && editing.isContentEditable){
+    editing.blur();
+    return;
+  }
   if(e.target.closest('.dg-btn')||e.target.closest('.dg-resize')||
      e.target.closest('.dg-hdr')||e.target.closest('.card')||e.target.closest('.dg')) return;
   e.preventDefault();
@@ -883,10 +934,7 @@ function handleCtrlKey(e, type) {
 }
 
 function handleCtrlBlur(type) {
-  if (type === 'snap') {
-    const v = +document.getElementById('snapInput').value;
-    updateSnap(v);
-  } else if (type === 'fpW') {
+  if (type === 'fpW') {
     const v = +document.getElementById('fpWInput').value;
     updateFpW(v);
   } else if (type === 'fpH') {
@@ -895,8 +943,9 @@ function handleCtrlBlur(type) {
   }
 }
 
+const SNAP_OPTIONS = [10,20,30];
 function updateSnap(v){
-  const ns=clamp(Math.round(v/10)*10,10,200);
+  const ns = SNAP_OPTIONS.includes(v) ? v : SNAP_OPTIONS.reduce((a,b)=>Math.abs(b-v)<Math.abs(a-v)?b:a);
   if(ns===SNAP){ updateCtrlUI(); return; }
   SNAP=ns;
   // 크기(w,h)는 그대로 두고, 위치(x,y)만 새 그리드 선에 맞춰 재정렬
@@ -996,6 +1045,96 @@ function snapTo(v,s) {return Math.round(v/s)*s;}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 function ce(tag,cls) {const e=document.createElement(tag);if(cls)e.className=cls;return e;}
 function st(e,o)     {Object.assign(e.style,o);}
+
+// ── 현재 상태 → 새 기본값 HTML로 저장 ──────────────────────────────────
+function serializeDefDesks(){
+  const list = Object.values(desks).slice().sort((a,b)=>{
+    if(a.no==null && b.no==null) return 0;
+    if(a.no==null) return 1;
+    if(b.no==null) return -1;
+    return a.no-b.no;
+  });
+  const lines = list.map(d=>{
+    const parts=[];
+    if(d.no!=null) parts.push(`no:${d.no}`);
+    parts.push(`x:${d.x}`,`y:${d.y}`,`w:${d.w}`,`h:${d.h}`);
+    if(d.label) parts.push(`label:${JSON.stringify(d.label)}`);
+    return `  {${parts.join(', ')}},`;
+  });
+  return `const DEF_DESKS = [\n${lines.join('\n')}\n];`;
+}
+
+function serializeNames(){
+  const groups={};
+  GROUP_ORDER.forEach(g=>groups[g]=[]);
+  Object.keys(cNm)
+    .sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1)))
+    .forEach(id=>{
+      const g = groups[cGrp[id]] ? cGrp[id] : GROUP_ORDER[0];
+      groups[g].push(cNm[id]);
+    });
+  const body = GROUP_ORDER
+    .map(g=>`  ${JSON.stringify(g)}: [${groups[g].map(n=>JSON.stringify(n)).join(',')}],`)
+    .join('\n');
+  return `const NAMES = {\n${body}\n};\nconst GROUP_ORDER = [${GROUP_ORDER.map(g=>JSON.stringify(g)).join(',')}]; // 풀 영역 표시 순서`;
+}
+
+function serializeSeatAssign(){
+  const entries=[];
+  Object.values(desks).forEach(d=>{
+    if(d.no==null) return;
+    const cid = s2c[d.slots[0]];
+    if(cid) entries.push(`  ${d.no}:${JSON.stringify(cNm[cid])},`);
+  });
+  return `const SEAT_ASSIGN = {\n${entries.join('\n')}\n};`;
+}
+
+function serializeGroupColors(){
+  return `let GROUP_COLORS = ${JSON.stringify(GROUP_COLORS)};`;
+}
+
+function saveAsNewDefault(){
+  if(!confirm('현재 배치·카드 위치를 새 기본값으로 저장할까요?\n새 HTML 파일이 다운로드됩니다.')) return;
+
+  let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+  // LS_KEY 버전 자동 증가
+  const m = html.match(/const LS_KEY = 'vi-seating-v(\d+)';/);
+  const newVer = (m ? parseInt(m[1]) : 0) + 1;
+  html = html.replace(/const LS_KEY = 'vi-seating-v\d+';/, `const LS_KEY = 'vi-seating-v${newVer}';`);
+
+  html = html.replace(
+    /\/\/ @@SNAP_DEFAULTS_START@@[\s\S]*?\/\/ @@SNAP_DEFAULTS_END@@/,
+    `// @@SNAP_DEFAULTS_START@@\nlet SNAP = ${SNAP};\nlet FP_W = ${FP_W};\nlet FP_H = ${FP_H};\n// @@SNAP_DEFAULTS_END@@`
+  );
+  html = html.replace(
+    /\/\/ @@LOADSTATE_FALLBACK_START@@[\s\S]*?\/\/ @@LOADSTATE_FALLBACK_END@@/,
+    `// @@LOADSTATE_FALLBACK_START@@\n    SNAP=d.snap||${SNAP}; FP_W=d.fpW||${FP_W}; FP_H=d.fpH||${FP_H};\n// @@LOADSTATE_FALLBACK_END@@`
+  );
+  html = html.replace(
+    /\/\/ @@DEF_DESKS_START@@[\s\S]*?\/\/ @@DEF_DESKS_END@@/,
+    `// @@DEF_DESKS_START@@\n${serializeDefDesks()}\n// @@DEF_DESKS_END@@`
+  );
+  html = html.replace(
+    /\/\/ @@NAMES_START@@[\s\S]*?\/\/ @@NAMES_END@@/,
+    `// @@NAMES_START@@\n${serializeNames()}\n// @@NAMES_END@@`
+  );
+  html = html.replace(
+    /\/\/ @@SEAT_ASSIGN_START@@[\s\S]*?\/\/ @@SEAT_ASSIGN_END@@/,
+    `// @@SEAT_ASSIGN_START@@\n${serializeSeatAssign()}\n// @@SEAT_ASSIGN_END@@`
+  );
+  html = html.replace(
+    /\/\/ @@GROUP_COLORS_START@@[\s\S]*?\/\/ @@GROUP_COLORS_END@@/,
+    `// @@GROUP_COLORS_START@@\n${serializeGroupColors()}\n// @@GROUP_COLORS_END@@`
+  );
+
+  const blob = new Blob([html], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `seating-chart_v${newVer}.html`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 
 // ── 부트 ─────────────────────────────────────────────────────────────────
 if(!loadState()) initState();
