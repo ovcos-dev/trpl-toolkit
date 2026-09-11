@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>인원 배치도</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0e1a;font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#e2e8f0;padding:16px}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+.header{max-width:none;margin:0 0 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.header h1{font-size:14px;font-weight:600}
+.btn-group{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cursor:pointer;border:1px solid;transition:background .15s,border-color .15s,color .15s,opacity .15s}
+.btn-reset   {background:#1a2235;border-color:#2d3a50;color:#8899aa}.btn-reset:hover{background:#2d3a50}
+.btn-undo,.btn-redo{background:#1a2235;border-color:#2d3a50;color:#8899aa}
+.btn-undo:hover:not(:disabled),.btn-redo:hover:not(:disabled){background:#2d3a50}
+.btn-undo:disabled,.btn-redo:disabled{opacity:.3;cursor:default}
+.btn-selmode {background:#1a2235;border-color:#2d3a50;color:#8899aa}.btn-selmode:hover{background:#2d3a50}
+.btn-selmode.active{background:#162a00;border-color:#4ade80;color:#86efac}
+.btn-delall  {background:#2d1010;border-color:#7f1d1d;color:#fca5a5}.btn-delall:hover{background:#3f1616}
+.btn-add     {background:#0e2a6e;border-color:#2255cc;color:#93c5fd}.btn-add:hover{background:#1a3d8a}
+.ctrl-group{display:flex;align-items:center;gap:6px;font-size:11px;color:#6a7a8a;background:#111827;border:1px solid #1e2d42;border-radius:6px;padding:4px 8px}
+.ctrl-group label{color:#5a6a7a}
+.ctrl-inp{width:52px;background:transparent;border:none;border-bottom:1px solid #2d3a50;color:#7eb8f7;font-size:11px;font-family:inherit;text-align:center;outline:none;padding:1px 2px}
+.ctrl-inp:focus{border-bottom-color:#3b82f6}
+.ctrl-sep{color:#2d3a50}
+.ctrl-unit{color:#3a4a5a;font-size:10px}
+
+/* ── Board layout (풀 + 캔버스 나란히) ──────────────────────────────── */
+.board-row{display:flex;align-items:flex-start;justify-content:center;gap:12px}
+
+/* ── Canvas ──────────────────────────────────────────────────────────── */
+.canvas-wrap{margin:0;background:#0e1320;border-radius:10px;padding:10px;overflow-x:auto;overflow-y:visible;flex:0 0 auto}
+.canvas{
+  position:relative;background:#0a0e1a;
+  background-image:
+    linear-gradient(to right,rgba(255,255,255,.05) 1px,transparent 1px),
+    linear-gradient(to bottom,rgba(255,255,255,.05) 1px,transparent 1px);
+  flex-shrink:0;
+}
+
+/* ── Desk ────────────────────────────────────────────────────────────── */
+.dg{
+  position:absolute;background:rgba(10,18,44,.9);
+  border:2px solid rgba(200,220,255,.65);
+  border-radius:3px;z-index:2;user-select:none;
+  transition:border-color .1s,box-shadow .1s;overflow:hidden;
+  cursor:grab; /* 테두리 끌기 대상 표시 */
+}
+.dg:hover{border-color:rgba(200,220,255,.95)}
+.dg.dg-drag{box-shadow:0 14px 45px rgba(0,0,0,.8);z-index:200;opacity:.88;overflow:visible;cursor:grabbing}
+.dg.dg-selected{border-color:#4ade80;box-shadow:0 0 0 1px rgba(74,222,128,.25)}
+.dg.dg-selected .dg-hdr{background:rgba(74,222,128,.07)}
+.dg-hdr{
+  height:22px;background:rgba(255,255,255,.04);
+  border-bottom:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 4px;cursor:grab; /* 이동 가능 영역 표시 */
+}
+.dg-lbl{font-size:9px;color:rgba(255,255,255,.28);flex:1;outline:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.dg-btns{display:flex;gap:2px;flex-shrink:0}
+.dg-btn{width:18px;height:18px;border:none;border-radius:3px;background:rgba(255,255,255,.08);color:#aab;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;font-family:inherit;transition:background .12s}
+.dg-btn:hover{background:rgba(255,255,255,.2)}
+.dg-dup{color:#7eb8f7}.dg-dup:hover{background:rgba(30,80,180,.35)!important}
+.dg-del{color:#f99}.dg-del:hover{background:rgba(180,30,30,.45)!important}
+.dg-body{padding:4px;height:calc(100% - 22px)}
+.dg-resize{position:absolute;bottom:0;right:0;width:16px;height:16px;cursor:se-resize;z-index:10;background:rgba(255,255,255,.12);clip-path:polygon(100% 0,100% 100%,0 100%);transition:background .12s}
+.dg-resize:hover{background:rgba(100,180,255,.45)}
+.dg-ghost{position:absolute;border:2px dashed rgba(100,180,255,.55);background:rgba(59,130,246,.06);border-radius:3px;pointer-events:none;z-index:199}
+
+/* ── Rubber-band ─────────────────────────────────────────────────────── */
+.sel-rect     {position:absolute;border:1.5px solid #4ade80;background:rgba(74,222,128,.07);pointer-events:none;z-index:50;border-radius:2px}
+.desk-sel-rect{position:absolute;border:1.5px dashed rgba(100,180,255,.8);background:rgba(59,130,246,.08);pointer-events:none;z-index:50;border-radius:2px}
+
+/* ── Slot ────────────────────────────────────────────────────────────── */
+.sl{width:100%;height:100%;position:relative;border-radius:2px;transition:background .12s}
+.sl.over{background:rgba(59,130,246,.22)!important}
+
+/* ── Cards ───────────────────────────────────────────────────────────── */
+.card{
+  position:absolute;inset:2px;
+  background:#091640;border:1px solid #163a8a;border-radius:2px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:500;color:#7eb8f7;
+  cursor:grab;user-select:none;z-index:3;
+  transition:background .12s,border-color .12s;overflow:hidden;
+}
+.card span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:calc(100% - 14px);pointer-events:none}
+.card.vert span{writing-mode:vertical-lr;text-orientation:upright;max-width:none;max-height:calc(100% - 14px)}
+.card:hover{background:#122060;border-color:#2563eb}
+.card:active{cursor:grabbing}
+.card.dragging{opacity:.2}
+.card.selected{background:#162a00;border-color:#4ade80;color:#86efac}
+.card.selected:hover{background:#1e3a00}
+.selmode .card{cursor:pointer}
+.del-btn{
+  position:absolute;top:2px;right:3px;
+  width:12px;height:12px;
+  display:none;align-items:center;justify-content:center;
+  font-size:10px;line-height:1;color:rgba(180,180,180,.55);
+  background:none;border:none;cursor:pointer;padding:0;font-family:inherit;z-index:20;
+  transition:color .1s;
+}
+.del-btn:hover{color:rgba(255,100,100,.9)}
+.card:hover .del-btn{display:flex}
+.selmode .card .del-btn{display:none!important}
+.card-inp{width:100%;background:transparent;border:none;outline:none;color:#c8e8ff;font-size:11px;font-family:inherit;text-align:center;cursor:text;padding:0 2px;min-width:0}
+.card.vert .card-inp{writing-mode:vertical-lr;text-orientation:upright;height:100%;width:auto}
+
+/* ── Pool (좌측 사이드바) ────────────────────────────────────────────── */
+.pool-wrap{
+  width:120px;flex:0 0 120px;margin:0;
+  border:1px dashed #1e2d42;border-radius:8px;padding:10px 12px;
+  min-height:54px;max-height:80vh;overflow-y:auto;
+  position:sticky;top:16px;
+  transition:border-color .15s,background .15s;
+}
+.pool-wrap.over{border-color:#3b82f6;background:rgba(59,130,246,.06)}
+.pool-lbl-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px;flex-wrap:wrap}
+.pool-lbl{font-size:11px;color:#3a4f6a}
+.pool-inner{display:flex;flex-direction:column;gap:10px}
+.pool-group-lbl{font-size:10px;color:#4a6a8a;font-weight:600;margin-bottom:5px}
+.pool-group-row{display:flex;flex-direction:column;gap:6px;min-height:28px}
+.pool-slot{width:100%;height:28px;position:relative}
+.pool-slot.over .card{border-color:#3b82f6!important;background:rgba(59,130,246,.18)!important}
+
+/* 인원추가 모달 - 그룹 토글 */
+.grp-toggle{display:flex;gap:6px;margin-bottom:12px}
+.grp-opt{flex:1;padding:6px 0;border-radius:5px;font-size:12px;font-family:inherit;background:#1a2235;border:1px solid #2d3a50;color:#8899aa;cursor:pointer;text-align:center;transition:background .12s,border-color .12s,color .12s}
+.grp-opt.active{background:#0e2a6e;border-color:#2255cc;color:#93c5fd}
+
+/* ── Floating action bar ─────────────────────────────────────────────── */
+.sel-bar{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#141d2e;border:1px solid #2a4060;border-radius:9px;padding:8px 14px;display:flex;align-items:center;gap:10px;z-index:600;box-shadow:0 6px 30px rgba(0,0,0,.6);white-space:nowrap}
+.sel-bar.hidden{display:none}
+.sel-bar-count{font-size:12px;color:#7eb8f7;min-width:60px}
+.sel-bar .sb-un{background:#162a00;border-color:#4ade80;color:#86efac}.sel-bar .sb-un:hover{background:#1e3a00}
+.sel-bar .sb-dl{background:#2d0e0e;border-color:#dc2626;color:#fca5a5}.sel-bar .sb-dl:hover{background:#3f1010}
+.sel-bar .sb-cc{background:#1a2235;border-color:#2d3a50;color:#8899aa}.sel-bar .sb-cc:hover{background:#2d3a50}
+
+/* ── Modal ───────────────────────────────────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:999}
+.overlay.open{display:flex}
+.modal{background:#141d2e;border:1px solid #2a3a50;border-radius:10px;padding:20px;width:260px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.modal h2{font-size:13px;font-weight:600;margin-bottom:12px;color:#c8d8ec}
+.modal input{width:100%;padding:8px 10px;background:#0a0e1a;border:1px solid #2a3a50;border-radius:5px;color:#e2e8f0;font-size:13px;font-family:inherit;outline:none;margin-bottom:12px}
+.modal input:focus{border-color:#2563eb}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.m-cancel{background:#1a2235;border-color:#2a3a50;color:#7a8a9a}
+.m-ok{background:#1a3d8a;border-color:#2563eb;color:#bfdbfe}.m-ok:hover{background:#1d4ed8}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📋 인원 배치도</h1>
+  <div class="btn-group">
+    <button class="btn-undo" id="btnUndo" onclick="undo()" disabled title="실행취소 (Ctrl+Z)">↩</button>
+    <button class="btn-redo" id="btnRedo" onclick="redo()" disabled title="다시실행 (Ctrl+Y)">↪</button>
+    <button class="btn-reset"  onclick="doReset()">↺ 초기화</button>
+    <button class="btn-reset"  onclick="doFullReset()">⟲ 레이아웃 초기화</button>
+    <button id="btnSel" class="btn-selmode" onclick="toggleSel()">☑ 인원카드 선택모드</button>
+    <button class="btn-delall" onclick="deleteAll()">전체 삭제</button>
+    <div class="ctrl-group">
+      <label>그리드</label>
+      <input class="ctrl-inp" id="snapInput" type="number" min="10" max="100" step="10" value="20"
+             onkeydown="handleCtrlKey(event, 'snap')" onblur="handleCtrlBlur('snap')" title="스냅 단위 (px 단위)"> px
+      <span class="ctrl-sep">│</span>
+      <label>캔버스</label>
+      <input class="ctrl-inp" id="fpWInput" type="number" min="1" max="500" step="1" value="100"
+             onkeydown="handleCtrlKey(event, 'fpW')" onblur="handleCtrlBlur('fpW')" title="가로 칸 수">
+      <span class="ctrl-sep">×</span>
+      <input class="ctrl-inp" id="fpHInput" type="number" min="1" max="500" step="1" value="90"
+             onkeydown="handleCtrlKey(event, 'fpH')" onblur="handleCtrlBlur('fpH')" title="세로 칸 수">
+      <span class="ctrl-unit">칸</span>
+    </div>
+  </div>
+</div>
+
+<div class="board-row">
+  <div class="pool-wrap" id="poolWrap">
+    <div class="pool-lbl-row">
+      <div class="pool-lbl">미배치 인원</div>
+      <button class="btn-add" onclick="openModal()">＋ 인원</button>
+    </div>
+    <div class="pool-inner" id="poolInner"></div>
+  </div>
+
+  <div class="canvas-wrap">
+    <div class="canvas" id="canvas"></div>
+  </div>
+</div>
+
+<div id="selBar" class="sel-bar hidden">
+  <span id="selCnt" class="sel-bar-count">0개 선택</span>
+  <button class="sb-un" onclick="selToPool()">↩ 미배치로</button>
+  <button class="sb-dl" onclick="selDel()">🗑 삭제</button>
+  <button class="sb-cc" onclick="selClear()">✕ 취소</button>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>인원 추가</h2>
+    <input id="nameInput" type="text" placeholder="이름 입력" maxlength="8"/>
+    <div class="grp-toggle">
+      <button type="button" class="grp-opt" id="grpBtnTramp"   onclick="selectGrp('트램폴린')">트램폴린</button>
+      <button type="button" class="grp-opt" id="grpBtnPaprika" onclick="selectGrp('파프리카')">파프리카</button>
+    </div>
+    <div class="modal-btns">
+      <button class="m-cancel" onclick="closeModal()">취소</button>
+      <button class="m-ok"     onclick="doAdd()">추가</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 설정 ─────────────────────────────────────────────────────────────────
+let SNAP = 10;
+let FP_W = 670;
+let FP_H = 900;
+const HDR = 22, PAD = 4, MIN_W = 60, MIN_H = 40;
+const LS_KEY = 'vi-seating-v9';
+
+// ── 초기 데이터 (그룹별) ─────────────────────────────────────────────────
+const NAMES = {
+  '트램폴린': ['박경호','고민수','권경록','김민경','김민주','김현지','문선진','박단비','양혜민','정직원A','정직원B','프리랜서'],
+  '파프리카': ['김민정','박지혜','박현종','안지아','하예원','허소연'],
+};
+const GROUP_ORDER = ['트램폴린','파프리카']; // 풀 영역 표시 순서
+const DEF_DESKS = [
+  // 좌측 열 (가로형 2인 데스크 × 3줄 + 1인 데스크 1개)
+  {no:1, x:0,  y:0,  w:130, h:60},
+  {no:2, x:130,y:0,  w:130, h:60},
+  {no:3, x:0,  y:180,w:130, h:60},
+  {no:4, x:130,y:180,w:130, h:60},
+  {no:5, x:0,  y:360,w:130, h:60},
+  {no:6, x:130,y:360,w:130, h:60},
+  {no:7, x:0,  y:540,w:130, h:60},
+  // 우측 열 (가로형 2인 데스크 × 4줄)
+  {no:8, x:410,y:50, w:130, h:60},
+  {no:9, x:540,y:50, w:130, h:60},
+  {no:10,x:410,y:220,w:130, h:60},
+  {no:11,x:540,y:220,w:130, h:60},
+  {no:12,x:410,y:280,w:130, h:60},
+  {no:13,x:540,y:280,w:130, h:60},
+  {no:14,x:410,y:440,w:130, h:60},
+  {no:15,x:540,y:440,w:130, h:60},
+  // 중앙 세로 스택 (회전형 2개)
+  {no:16,x:380,y:640,w:60, h:130},
+  {no:17,x:380,y:770,w:60, h:130},
+  // 우측 세로 스택 (회전형 3개)
+  {no:18,x:610,y:510,w:60, h:130},
+  {no:19,x:610,y:640,w:60, h:130},
+  {no:20,x:610,y:770,w:60, h:130},
+];
+
+// 테이블 번호 → 초기 배치 인원 (화면에 표시되지 않는 내부 매핑)
+const SEAT_ASSIGN = {
+  1:'박지혜', 2:'안지아',
+  3:'하예원', 4:'허소연',
+  5:'박현종',
+  7:'김민정',
+               9:'김민경',
+  10:'김민주', 
+  12:'박단비', 13:'문선진', 
+  14:'김현지', 15:'고민수',
+  16:'박경호',
+  18:'양혜민',
+  20:'권경록',
+  // 번호가 없는 3,8,12,17,19번 데스크는 빈 자리로 시작
+};
+
+// ── 상태 ─────────────────────────────────────────────────────────────────
+let desks={},deskUid=0,slotUid=0;
+let s2c={},c2s={},cNm={},cGrp={},cN=0;
+let selMode=false, sel=new Set();
+let deskSel=new Set();
+let dragActive=false, dragId=null, dragFrom=null;
+
+// ── Undo / Redo ───────────────────────────────────────────────────────────
+const UNDO_LIMIT = 50;
+let undoStack = [];
+let redoStack = [];
+
+function captureState() {
+  return JSON.stringify({
+    desks: Object.values(desks).map(d=>({...d,slots:[...d.slots]})),
+    s2c:{...s2c}, c2s:{...c2s}, cNm:{...cNm}, cGrp:{...cGrp},
+    deskUid, slotUid, cN
+  });
+}
+
+function pushUndo() {
+  undoStack.push(captureState());
+  if(undoStack.length > UNDO_LIMIT) undoStack.shift();
+  redoStack = [];
+  updateUndoUI();
+}
+
+function applyState(raw) {
+  const d = JSON.parse(raw);
+  desks={}; d.desks.forEach(dk=>desks[dk.id]=dk);
+  s2c=d.s2c; c2s=d.c2s; cNm=d.cNm; cGrp=d.cGrp||{};
+  deskUid=d.deskUid; slotUid=d.slotUid; cN=d.cN;
+}
+
+function undo() {
+  if(!undoStack.length) return;
+  redoStack.push(captureState());
+  applyState(undoStack.pop());
+  updateUndoUI();
+  render();
+}
+
+function redo() {
+  if(!redoStack.length) return;
+  undoStack.push(captureState());
+  applyState(redoStack.pop());
+  updateUndoUI();
+  render();
+}
+
+function updateUndoUI() {
+  document.getElementById('btnUndo').disabled = undoStack.length===0;
+  document.getElementById('btnRedo').disabled = redoStack.length===0;
+}
+
+// ── 초기화 ────────────────────────────────────────────────────────────────
+function initState() {
+  desks={}; deskUid=0; slotUid=0;
+  s2c={}; c2s={}; cNm={}; cGrp={}; cN=0;
+  sel.clear(); deskSel.clear();
+  undoStack=[]; redoStack=[];
+
+  // 테이블 번호(no) → 데스크 id의 첫 번째(유일한) 슬롯 id 매핑
+  const noToSlot = {};
+  DEF_DESKS.forEach(d=>{
+    const did = mkDesk(d.x,d.y,d.w,d.h,'',d.no);
+    if(d.no!=null) noToSlot[d.no] = desks[did].slots[0];
+  });
+
+  // 이름 → 배정할 테이블 번호 역매핑 (SEAT_ASSIGN: 번호→이름)
+  const nameToNo = {};
+  Object.entries(SEAT_ASSIGN).forEach(([no,name])=>{ nameToNo[name]=+no; });
+
+  Object.entries(NAMES).forEach(([grp,names])=>{
+    names.forEach(n=>{
+      const id='c'+cN++; cNm[id]=n; cGrp[id]=grp;
+      const no = nameToNo[n];
+      const sid = no!=null ? noToSlot[no] : null;
+      if(sid){ s2c[sid]=id; c2s[id]=sid; }   // 지정된 테이블에 바로 배치
+      else   { c2s[id]='pool'; }              // 매핑 없으면 미배치 풀
+    });
+  });
+}
+
+function mkDesk(x,y,w,h,label='',no=null) {
+  const id='d'+deskUid++, sid='s'+slotUid++;
+  s2c[sid]=null;
+  desks[id]={id,x,y,w,h,label,slots:[sid],no}; // no: 내부용 테이블 번호, 화면 미표시
+  return id;
+}
+
+// ── localStorage ─────────────────────────────────────────────────────────
+function saveState() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      desks:Object.values(desks),s2c,c2s,cNm,cGrp,
+      deskUid,slotUid,cN,snap:SNAP,fpW:FP_W,fpH:FP_H
+    }));
+  } catch(e){}
+}
+
+function loadState() {
+  try {
+    const raw=localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    const d=JSON.parse(raw);
+    desks={}; (d.desks||[]).forEach(dk=>desks[dk.id]=dk);
+    s2c=d.s2c||{}; c2s=d.c2s||{}; cNm=d.cNm||{}; cGrp=d.cGrp||{};
+    deskUid=d.deskUid||0; slotUid=d.slotUid||0; cN=d.cN||0;
+    SNAP=d.snap||10; FP_W=d.fpW||670; FP_H=d.fpH||900;
+    return Object.keys(desks).length>0;
+  } catch(e){return false;}
+}
+
+// ── 렌더 ─────────────────────────────────────────────────────────────────
+function render() {
+  const cv=document.getElementById('canvas');
+  const pi=document.getElementById('poolInner');
+  cv.innerHTML=''; pi.innerHTML='';
+  document.body.classList.toggle('selmode',selMode);
+  updateCtrlUI();
+  Object.values(desks).forEach(d=>cv.appendChild(buildDesk(d)));
+  GROUP_ORDER.forEach(grp=>{
+    const ids=Object.entries(c2s).filter(([id,v])=>v==='pool'&&cGrp[id]===grp).map(([id])=>id);
+    const grpWrap=ce('div','pool-group');
+    const grpLbl=ce('div','pool-group-lbl'); grpLbl.textContent=`${grp} (${ids.length})`;
+    const grpRow=ce('div','pool-group-row');
+    ids.forEach(id=>{
+      const w=ce('div','pool-slot');
+      w.dataset.sid='pool_'+id;
+      w.appendChild(mkCard(id,false));
+      dropOn(w,'pool_'+id);
+      grpRow.appendChild(w);
+    });
+    grpWrap.append(grpLbl,grpRow);
+    pi.appendChild(grpWrap);
+  });
+  updateSelUI();
+  updateDeskSelUI();
+  updateUndoUI();
+  saveState();
+}
+
+// ── 데스크 DOM ────────────────────────────────############################
+function buildDesk(d) {
+  const el=ce('div','dg'+(deskSel.has(d.id)?' dg-selected':''));
+  st(el,{left:d.x+'px',top:d.y+'px',width:d.w+'px',height:d.h+'px'});
+  el.dataset.did=d.id;
+
+
+
+  // 헤더
+  const hdr=ce('div','dg-hdr');
+  const lbl=ce('span','dg-lbl');
+  lbl.textContent=d.label||'';
+  lbl.title='더블클릭: 이름 변경';
+  lbl.ondblclick=e=>{e.stopPropagation();editLbl(lbl,d.id);};
+  const bts=ce('div','dg-btns');
+  bts.appendChild(dgBtn('↻','회전',()=>rotDesk(d.id)));
+  const dup=dgBtn('⊕','복제',()=>dupeDesk(d.id));
+  dup.classList.add('dg-dup');
+  bts.appendChild(dup);
+  const db=dgBtn('×','닫기 (선택된 데스크 모두)',()=>delDesk(d.id));
+  db.classList.add('dg-del');
+  bts.appendChild(db);
+  hdr.append(lbl,bts);
+  el.appendChild(hdr);
+
+  // 슬롯 (1개)
+  const body=ce('div','dg-body');
+  const sid=d.slots[0];
+  const slEl=ce('div','sl');
+  slEl.dataset.sid=sid;
+  const cid=s2c[sid];
+  const isVert=(d.h-HDR-PAD*2)>(d.w-PAD*2);
+  if(cid) slEl.appendChild(mkCard(cid,isVert));
+  dropOn(slEl,sid);
+  body.appendChild(slEl);
+  el.appendChild(body);
+
+  const rh=ce('div','dg-resize');
+  el.appendChild(rh);
+
+  deskDrag(el, d.id); // 데스크 가장자리(요소 전체)를 통한 이동 적용
+  deskResize(rh,d.id,el);
+  return el;
+}
+
+function dgBtn(txt,title,fn){
+  const b=ce('button','dg-btn');
+  b.textContent=txt; b.title=title;
+  b.onclick=e=>{e.stopPropagation();fn();};
+  return b;
+}
+
+function editLbl(lbl,did){
+  if(lbl.contentEditable==='true') return;
+  lbl.contentEditable='true'; lbl.style.color='#7eb8f7';
+  lbl.focus(); document.execCommand('selectAll',false,null);
+  const onKey=e=>{
+    if(e.key==='Enter'||e.key==='Escape'){e.preventDefault();lbl.removeEventListener('keydown',onKey);lbl.blur();}
+    e.stopPropagation();
+  };
+  lbl.addEventListener('blur',()=>{
+    lbl.contentEditable='false'; lbl.style.color='';
+    lbl.removeEventListener('keydown',onKey);
+    const v=lbl.textContent.trim();
+    if(v!==desks[did]?.label){pushUndo();}
+    if(desks[did]) desks[did].label=v;
+    if(!v) lbl.textContent='';
+    saveState();
+  },{once:true});
+  lbl.addEventListener('keydown',onKey);
+}
+
+// ── 데스크 이동 + 선택 (헤더 제외, 윈도우 탐색기 방식 선택) ──────────────
+function deskDrag(el, did){
+  const DRAG_THRESHOLD = 4; // 이 픽셀 이상 움직여야 "드래그"로 판정 (클릭 떨림 방지)
+
+  el.addEventListener('mousedown',e=>{
+    // 버튼, 크기조절 핸들, 카드, 편집 중인 요소 클릭 시에만 이동 제외 (헤더는 다시 이동 가능)
+    if(e.target.closest('.dg-btn') || e.target.closest('.dg-resize') ||
+       e.target.closest('.card') || e.target.closest('[contenteditable="true"]') ||
+       e.target.closest('.ctrl-inp')) return;
+
+    e.preventDefault(); e.stopPropagation();
+
+    const cv=document.getElementById('canvas'), cr=cv.getBoundingClientRect();
+    const mx0=e.clientX-cr.left, my0=e.clientY-cr.top;
+    const downX=e.clientX, downY=e.clientY;
+    const wasSelected = deskSel.has(did);
+    const ctrlHeld = e.ctrlKey || e.metaKey;
+
+    // 이미 선택된 데스크면 선택된 전체를 이동, 아니면 이 데스크만
+    const movers = wasSelected ? [...deskSel] : [did];
+
+    const starts={};
+    movers.forEach(id=>starts[id]={x:desks[id].x,y:desks[id].y});
+    movers.forEach(id=>{const dEl=cv.querySelector(`[data-did="${id}"]`);if(dEl)dEl.classList.add('dg-drag');});
+
+    const d=desks[did];
+    const ghost=ce('div','dg-ghost');
+    st(ghost,{left:d.x+'px',top:d.y+'px',width:d.w+'px',height:d.h+'px'});
+    cv.appendChild(ghost);
+    let moved=false;
+
+    const onM=e=>{
+      // 실제 이동거리가 임계값을 넘을 때만 "드래그"로 확정 (클릭 시 미세 떨림 무시)
+      if(!moved){
+        const dist=Math.hypot(e.clientX-downX, e.clientY-downY);
+        if(dist < DRAG_THRESHOLD) return;
+        moved=true;
+      }
+      const dx=e.clientX-cr.left-mx0, dy=e.clientY-cr.top-my0;
+      movers.forEach(id=>{const dEl=cv.querySelector(`[data-did="${id}"]`);if(dEl)st(dEl,{left:(starts[id].x+dx)+'px',top:(starts[id].y+dy)+'px'});});
+      st(ghost,{left:clamp(snap(starts[did].x+dx),0,FP_W-d.w)+'px',top:clamp(snap(starts[did].y+dy),0,FP_H-d.h)+'px'});
+    };
+    const onU=e=>{
+      document.removeEventListener('mousemove',onM);
+      document.removeEventListener('mouseup',onU);
+      ghost.remove();
+      movers.forEach(id=>{const dEl=cv.querySelector(`[data-did="${id}"]`);if(dEl)dEl.classList.remove('dg-drag');});
+
+      if(moved){
+        // 실제 이동 발생 → 위치 확정
+        const dx=e.clientX-cr.left-mx0, dy=e.clientY-cr.top-my0;
+        pushUndo();
+        movers.forEach(id=>{
+          const dd=desks[id];
+          dd.x=clamp(snap(starts[id].x+dx),0,FP_W-dd.w);
+          dd.y=clamp(snap(starts[id].y+dy),0,FP_H-dd.h);
+          const dEl=cv.querySelector(`[data-did="${id}"]`);
+          if(dEl)st(dEl,{left:dd.x+'px',top:dd.y+'px'});
+        });
+        // 미선택 상태에서 드래그했다면: Ctrl held → 기존 선택에 추가 / 아니면 이것만 선택
+        if(!wasSelected){
+          if(ctrlHeld){ deskSel.add(did); } else { deskSel.clear(); deskSel.add(did); }
+          updateDeskSelUI();
+        }
+        saveState();
+      } else {
+        // 이동 없음(단순 클릭) → 탐색기 방식 선택
+        if(ctrlHeld){
+          deskSel.has(did) ? deskSel.delete(did) : deskSel.add(did);
+        } else {
+          deskSel.clear();
+          deskSel.add(did);
+        }
+        updateDeskSelUI();
+      }
+    };
+    document.addEventListener('mousemove',onM);
+    document.addEventListener('mouseup',onU);
+  });
+}
+
+// ── 데스크 크기조정 ───────────────────────────────────────────────────────
+function deskResize(rh,did,el){
+  rh.addEventListener('mousedown',e=>{
+    e.preventDefault(); e.stopPropagation();
+    const d=desks[did],sx=e.clientX,sy=e.clientY,sw=d.w,sh=d.h;
+    const cv=document.getElementById('canvas');
+    const ghost=ce('div','dg-ghost');
+    st(ghost,{left:d.x+'px',top:d.y+'px',width:sw+'px',height:sh+'px'});
+    cv.appendChild(ghost);
+    const onM=e=>{
+      st(el,{width:Math.max(MIN_W,sw+e.clientX-sx)+'px',height:Math.max(MIN_H,sh+e.clientY-sy)+'px'});
+      st(ghost,{width:clamp(snap(Math.max(MIN_W,sw+e.clientX-sx)),MIN_W,FP_W-d.x)+'px',height:clamp(snap(Math.max(MIN_H,sh+e.clientY-sy)),MIN_H,FP_H-d.y)+'px'});
+    };
+    const onU=e=>{
+      document.removeEventListener('mousemove',onM);
+      document.removeEventListener('mouseup',onU);
+      ghost.remove();
+      const nw=clamp(snap(Math.max(MIN_W,sw+e.clientX-sx)),MIN_W,FP_W-d.x);
+      const nh=clamp(snap(Math.max(MIN_H,sh+e.clientY-sy)),MIN_H,FP_H-d.y);
+      if(nw!==sw||nh!==sh){
+        pushUndo();
+        d.w=nw; d.h=nh;
+      }
+      render();
+    };
+    document.addEventListener('mousemove',onM);
+    document.addEventListener('mouseup',onU);
+  });
+}
+
+// ── 데스크 연산 ───────────────────────────────────────────────────────────
+function rotDesk(did){
+  const d=desks[did]; if(d.w===d.h) return;
+  pushUndo();
+  const nw=d.h,nh=d.w;
+  d.x=clamp(d.x,0,FP_W-nw); d.y=clamp(d.y,0,FP_H-nh);
+  d.w=nw; d.h=nh; render();
+}
+
+function delDesk(did){
+  pushUndo();
+  const toDelete=deskSel.has(did)?[...deskSel]:[did];
+  toDelete.forEach(id=>{
+    if(!desks[id]) return;
+    desks[id].slots.forEach(s=>{const c=s2c[s];if(c)c2s[c]='pool';delete s2c[s];});
+    delete desks[id]; deskSel.delete(id);
+  });
+  render();
+}
+
+function dupeDesk(did){
+  pushUndo();
+  const d=desks[did];
+  const nx=clamp(d.x+SNAP*2,0,FP_W-d.w);
+  const ny=clamp(d.y+SNAP*2,0,FP_H-d.h);
+  mkDesk(nx,ny,d.w,d.h,d.label); // no 생략 → null, 복제본은 초기 배치용 번호를 갖지 않음
+  render();
+}
+
+function updateDeskSelUI(){
+  document.querySelectorAll('.dg').forEach(el=>{
+    const s=deskSel.has(el.dataset.did);
+    el.classList.toggle('dg-selected',s);
+    const hdr=el.querySelector('.dg-hdr');
+    if(hdr) hdr.style.background=s?'rgba(74,222,128,.07)':'rgba(255,255,255,.04)';
+  });
+}
+
+// ── 이름 카드 ─────────────────────────────────────────────────────────────
+function mkCard(id,vert=false){
+  const el=ce('div','card'+(vert?' vert':'')+(sel.has(id)?' selected':''));
+  el.dataset.cid=id; el.draggable=!selMode;
+  const sp=document.createElement('span');
+  sp.textContent=cNm[id]; el.appendChild(sp);
+  const db=ce('button','del-btn');
+  db.textContent='×'; db.title=c2s[id]==='pool'?'삭제':'미배치로';
+  db.onclick=ev=>{ev.stopPropagation();c2s[id]==='pool'?delCard(id):unassign(id);};
+  el.appendChild(db);
+
+  el.addEventListener('click',ev=>{
+    if(dragActive) return;
+    if(selMode){
+      ev.stopPropagation();
+      if(ev.ctrlKey||ev.metaKey){
+        sel.has(id)?sel.delete(id):sel.add(id);
+      } else {
+        sel.clear();
+        sel.add(id);
+      }
+      updateSelUI();
+      document.querySelectorAll('.card').forEach(c=>c.classList.toggle('selected',sel.has(c.dataset.cid)));
+    } else {startEdit(el,id,vert);}
+  });
+  el.addEventListener('dragstart',ev=>{
+    if(selMode){ev.preventDefault();return;}
+    dragActive=true; dragId=id;
+    dragFrom=c2s[id]==='pool'?'pool':c2s[id];
+    ev.dataTransfer.effectAllowed='move';
+    setTimeout(()=>el.classList.add('dragging'),0);
+  });
+  el.addEventListener('dragend',()=>{
+    el.classList.remove('dragging');
+    document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));
+    dragId=dragFrom=null; setTimeout(()=>dragActive=false,60);
+  });
+  return el;
+}
+
+function startEdit(cardEl,id,vert=false){
+  const sp=cardEl.querySelector('span');
+  if(!sp||cardEl.querySelector('.card-inp')) return;
+  cardEl.draggable=false;
+  const inp=document.createElement('input');
+  inp.type='text'; inp.value=cNm[id]; inp.maxLength=8; inp.className='card-inp';
+  sp.replaceWith(inp); inp.select(); inp.focus();
+  let saved=false;
+  const save=()=>{
+    if(saved) return; saved=true;
+    const v=inp.value.trim();
+    if(v&&v!==cNm[id]){pushUndo();cNm[id]=v;}
+    render();
+  };
+  const cancel=()=>{if(saved)return;saved=true;render();};
+  inp.addEventListener('blur',save);
+  inp.addEventListener('click',e=>e.stopPropagation());
+  inp.addEventListener('mousedown',e=>e.stopPropagation());
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();inp.removeEventListener('blur',save);save();}
+    if(e.key==='Escape'){inp.removeEventListener('blur',save);cancel();}
+    e.stopPropagation();
+  });
+}
+
+// ── 드롭 ─────────────────────────────────────────────────────────────────
+function dropOn(el,sid){
+  el.addEventListener('dragover',ev=>{ev.preventDefault();el.classList.add('over');});
+  el.addEventListener('dragleave',()=>el.classList.remove('over'));
+  el.addEventListener('drop',ev=>{
+    ev.preventDefault(); el.classList.remove('over');
+    if(!dragId||sid===dragFrom) return;
+    pushUndo();
+    const toPool=sid.startsWith('pool_'),fromPool=dragFrom==='pool';
+    if(toPool){if(!fromPool){s2c[dragFrom]=null;c2s[dragId]='pool';}}
+    else{const ex=s2c[sid];s2c[sid]=dragId;c2s[dragId]=sid;if(fromPool){if(ex)c2s[ex]='pool';}else{s2c[dragFrom]=ex||null;if(ex)c2s[ex]=dragFrom;}}
+    render();
+  });
+}
+
+const pw=document.getElementById('poolWrap');
+pw.addEventListener('dragover',ev=>{ev.preventDefault();pw.classList.add('over');});
+pw.addEventListener('dragleave',()=>pw.classList.remove('over'));
+pw.addEventListener('drop',ev=>{
+  ev.preventDefault();pw.classList.remove('over');
+  if(!dragId||dragFrom==='pool') return;
+  pushUndo(); s2c[dragFrom]=null; c2s[dragId]='pool'; render();
+});
+
+function unassign(id){pushUndo();const s=c2s[id];if(!s||s==='pool')return;s2c[s]=null;c2s[id]='pool';render();}
+function delCard(id){pushUndo();const s=c2s[id];if(s&&s!=='pool')s2c[s]=null;delete c2s[id];delete cNm[id];sel.delete(id);updateSelUI();render();}
+function selToPool(){pushUndo();sel.forEach(id=>{const s=c2s[id];if(s&&s!=='pool'){s2c[s]=null;c2s[id]='pool';}});sel.clear();updateSelUI();render();}
+function selDel(){if(!sel.size)return;pushUndo();sel.forEach(id=>{const s=c2s[id];if(s&&s!=='pool')s2c[s]=null;delete c2s[id];delete cNm[id];});sel.clear();updateSelUI();render();}
+function deleteAll(){if(!confirm('모든 인원 카드를 삭제할까요?'))return;pushUndo();Object.keys(s2c).forEach(s=>s2c[s]=null);c2s={};cNm={};sel.clear();updateSelUI();render();}
+function selClear(){sel.clear();updateSelUI();render();}
+
+function toggleSel(){selMode=!selMode;if(!selMode)sel.clear();updateSelUI();render();}
+function updateSelUI(){
+  document.getElementById('btnSel').classList.toggle('active',selMode);
+  const n=sel.size,bar=document.getElementById('selBar');
+  n>0?(bar.classList.remove('hidden'),document.getElementById('selCnt').textContent=`${n}개 선택됨`):bar.classList.add('hidden');
+}
+
+// ── 러버밴드 선택 ─────────────────────────────────────────────────────────
+let rb={on:false,x0:0,y0:0,el:null,mode:'',ctrl:false};
+
+document.getElementById('canvas').addEventListener('mousedown',e=>{
+  if(e.target.closest('.dg-btn')||e.target.closest('.dg-resize')||
+     e.target.closest('.dg-hdr')||e.target.closest('.card')||e.target.closest('.dg')) return;
+  e.preventDefault();
+  const r=document.getElementById('canvas').getBoundingClientRect();
+  rb.x0=e.clientX-r.left; rb.y0=e.clientY-r.top; rb.on=true;
+  rb.mode=selMode?'card':'desk';
+  rb.ctrl=e.ctrlKey||e.metaKey;
+  rb.el=ce('div',rb.mode==='card'?'sel-rect':'desk-sel-rect');
+  st(rb.el,{left:rb.x0+'px',top:rb.y0+'px',width:'0',height:'0'});
+  document.getElementById('canvas').appendChild(rb.el);
+});
+
+document.addEventListener('mousemove',e=>{
+  if(!rb.on||!rb.el) return;
+  const r=document.getElementById('canvas').getBoundingClientRect();
+  const cx=clamp(e.clientX-r.left,0,r.width),cy=clamp(e.clientY-r.top,0,r.height);
+  st(rb.el,{left:Math.min(cx,rb.x0)+'px',top:Math.min(cy,rb.y0)+'px',width:Math.abs(cx-rb.x0)+'px',height:Math.abs(cy-rb.y0)+'px'});
+});
+
+document.addEventListener('mouseup',e=>{
+  if(!rb.on) return; rb.on=false;
+  if(!rb.el) return;
+  const sr=rb.el.getBoundingClientRect();
+  const dist=Math.hypot(e.clientX-(sr.left+sr.right)/2,e.clientY-(sr.top+sr.bottom)/2);
+  rb.el.remove(); rb.el=null;
+
+  if(rb.mode==='desk'){
+    if(dist<5){
+      if(!rb.ctrl){ deskSel.clear(); updateDeskSelUI(); }
+      // Ctrl+빈 캔버스 클릭은 기존 선택 유지
+    } else {
+      const hit=new Set();
+      document.querySelectorAll('.dg').forEach(el=>{
+        const r2=el.getBoundingClientRect();
+        if(!(sr.right<r2.left||sr.left>r2.right||sr.bottom<r2.top||sr.top>r2.bottom)) hit.add(el.dataset.did);
+      });
+      if(rb.ctrl){
+        hit.forEach(id=> deskSel.has(id)?deskSel.delete(id):deskSel.add(id)); // 토글
+      } else {
+        deskSel.clear();
+        hit.forEach(id=>deskSel.add(id)); // 교체
+      }
+      updateDeskSelUI();
+    }
+  } else {
+    const hit=new Set();
+    document.querySelectorAll('.card').forEach(c=>{
+      const r2=c.getBoundingClientRect();
+      if(!(sr.right<r2.left||sr.left>r2.right||sr.bottom<r2.top||sr.top>r2.bottom)) hit.add(c.dataset.cid);
+    });
+    if(dist<5){
+      if(!rb.ctrl) sel.clear();
+    } else if(rb.ctrl){
+      hit.forEach(id=> sel.has(id)?sel.delete(id):sel.add(id));
+    } else {
+      sel.clear();
+      hit.forEach(id=>sel.add(id));
+    }
+    updateSelUI();
+    document.querySelectorAll('.card').forEach(c=>c.classList.toggle('selected',sel.has(c.dataset.cid)));
+  }
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){deskSel.clear();updateDeskSelUI();sel.clear();updateSelUI();}
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();}
+  if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();redo();}
+});
+
+// ── 입력 값 엔터 반영 컨트롤 핸들러 ──────────────────────────────────────
+function handleCtrlKey(e, type) {
+  if (e.key === 'Enter') {
+    e.target.blur(); // 블러를 유발해 반영 함수 호출
+  }
+}
+
+function handleCtrlBlur(type) {
+  if (type === 'snap') {
+    const v = +document.getElementById('snapInput').value;
+    updateSnap(v);
+  } else if (type === 'fpW') {
+    const v = +document.getElementById('fpWInput').value;
+    updateFpW(v);
+  } else if (type === 'fpH') {
+    const v = +document.getElementById('fpHInput').value;
+    updateFpH(v);
+  }
+}
+
+function updateSnap(v){
+  const ns=clamp(Math.round(v/10)*10,10,100);
+  if(ns===SNAP){updateCtrlUI();return;}
+  const ratio=ns/SNAP;
+  Object.values(desks).forEach(d=>{
+    const nw=Math.max(MIN_W,snapTo(d.w*ratio,ns));
+    const nh=Math.max(MIN_H,snapTo(d.h*ratio,ns));
+    d.x=clamp(snapTo(d.x*ratio,ns),0,FP_W-nw);
+    d.y=clamp(snapTo(d.y*ratio,ns),0,FP_H-nh);
+    d.w=nw; d.h=nh;
+  });
+  SNAP=ns; render();
+}
+
+function updateFpW(cells){FP_W=clamp(Math.round(cells),1,500)*SNAP;Object.values(desks).forEach(d=>{d.x=clamp(d.x,0,FP_W-d.w);});render();}
+function updateFpH(cells){FP_H=clamp(Math.round(cells),1,500)*SNAP;Object.values(desks).forEach(d=>{d.y=clamp(d.y,0,FP_H-d.h);});render();}
+
+function updateCtrlUI(){
+  const cv=document.getElementById('canvas');
+  const cw=document.querySelector('.canvas-wrap');
+  if(cv){cv.style.width=FP_W+'px';cv.style.height=FP_H+'px';cv.style.backgroundSize=`${SNAP}px ${SNAP}px`;}
+  if(cw){cw.style.width=(FP_W + 20)+'px'; cw.style.maxWidth='none';}
+  const si=document.getElementById('snapInput');if(si)si.value=SNAP;
+  const wi=document.getElementById('fpWInput');if(wi)wi.value=Math.round(FP_W/SNAP);
+  const hi=document.getElementById('fpHInput');if(hi)hi.value=Math.round(FP_H/SNAP);
+}
+
+function doReset(){
+  pushUndo();
+  Object.keys(s2c).forEach(sid=>{const cid=s2c[sid];if(cid){c2s[cid]='pool';s2c[sid]=null;}});
+  selMode=false;sel.clear();deskSel.clear();
+  updateSelUI();render();
+}
+
+// 데스크 위치·크기·그리드·해상도까지 전부 최초 기본값(DEF_DESKS)으로 되돌림
+function doFullReset(){
+  if(!confirm('데스크 배치까지 완전히 초기화할까요? 이동/크기조정한 내용이 모두 사라집니다.')) return;
+  pushUndo();
+  SNAP = 10; FP_W = 670; FP_H = 900;   // 기본 그리드/해상도 값과 동일하게 맞춰줘야 함
+  initState();
+  render();
+}
+
+let addGrp = GROUP_ORDER[0];
+function selectGrp(g){
+  addGrp=g;
+  document.getElementById('grpBtnTramp').classList.toggle('active', g==='트램폴린');
+  document.getElementById('grpBtnPaprika').classList.toggle('active', g==='파프리카');
+}
+function openModal(){
+  document.getElementById('nameInput').value='';
+  selectGrp(GROUP_ORDER[0]);
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('nameInput').focus(),60);
+}
+function closeModal(){document.getElementById('overlay').classList.remove('open');}
+function doAdd(){
+  const n=document.getElementById('nameInput').value.trim();
+  if(!n)return;
+  pushUndo();
+  const id='c'+cN++;
+  cNm[id]=n; cGrp[id]=addGrp; c2s[id]='pool';
+  closeModal(); render();
+}
+document.getElementById('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')doAdd();if(e.key==='Escape')closeModal();});
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
+
+function snap(v)     {return Math.round(v/SNAP)*SNAP;}
+function snapTo(v,s) {return Math.round(v/s)*s;}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function ce(tag,cls) {const e=document.createElement(tag);if(cls)e.className=cls;return e;}
+function st(e,o)     {Object.assign(e.style,o);}
+
+if(!loadState()) initState();
+render();
+</script>
+</body>
+</html>
