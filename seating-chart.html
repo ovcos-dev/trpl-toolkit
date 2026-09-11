@@ -180,6 +180,7 @@ button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cur
     <button class="btn-redo" id="btnRedo" onclick="redo()" disabled title="다시실행 (Ctrl+Y)">↪</button>
     <button class="btn-reset"  onclick="doReset()">↺ 초기화</button>
     <button class="btn-reset"  onclick="doFullReset()">⟲ 레이아웃 초기화</button>
+    <button class="btn-reset"  onclick="snapAllDesks()" title="모든 데스크의 위치·크기를 현재 그리드에 맞춰 정렬">▦ 그리드 정렬</button>
     <button id="btnSel" class="btn-selmode" onclick="toggleSel()">☑ 인원카드 선택모드</button>
     <button class="btn-delall" onclick="deleteAll()">전체 삭제</button>
     <div class="ctrl-group">
@@ -188,7 +189,7 @@ button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cur
              onkeydown="handleCtrlKey(event, 'snap')" onblur="handleCtrlBlur('snap')" title="스냅 단위 (px 단위)"> px
       <span class="ctrl-sep">│</span>
       <label>캔버스</label>
-      <input class="ctrl-inp" id="fpWInput" type="number" min="1" max="500" step="1" value="100"
+      <input class="ctrl-inp" id="fpWInput" type="number" min="1" max="500" step="1" value="60"
              onkeydown="handleCtrlKey(event, 'fpW')" onblur="handleCtrlBlur('fpW')" title="가로 칸 수">
       <span class="ctrl-sep">×</span>
       <input class="ctrl-inp" id="fpHInput" type="number" min="1" max="500" step="1" value="90"
@@ -237,8 +238,8 @@ button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cur
 <script>
 // ── 설정 ─────────────────────────────────────────────────────────────────
 let SNAP = 10;
-let FP_W = 670;
-let FP_H = 900;
+let FP_W = 600;   // 60칸 × 10px
+let FP_H = 900;   // 90칸 × 10px
 const HDR = 22, PAD = 4, MIN_W = 60, MIN_H = 40;
 const LS_KEY = 'vi-seating-v12';
   
@@ -252,7 +253,7 @@ const GROUP_ORDER = ['트램폴린','파프리카']; // 풀 영역 표시 순서
 const GROUP_KEY = {'트램폴린':'tramp','파프리카':'paprika'}; // CSS 변수/저장용 내부 키
 
 // 그룹별 기준 색상 (컬러피커로 선택한 값). 배경/테두리/글자/hover는 이 값에서 자동 계산됨
-let GROUP_COLORS = { tramp:'#d481df', paprika:'#34554a' };
+let GROUP_COLORS = { tramp:'#A88861', paprika:'#8A6799' };
 
 // ── 색상 유틸 ────────────────────────────────────────────────────────────
 function hexToRgb(hex){
@@ -278,30 +279,30 @@ function applyGroupColor(key, baseHex){
   root.setProperty(`--grp-${key}-text`,      mixHex(baseHex,'#ffffff',0.38));
 }
 const DEF_DESKS = [
-  // 좌측 열 (가로형 2인 데스크 × 3줄 + 1인 데스크 1개)
-  {no:1, x:0,  y:0,  w:130, h:60},
-  {no:2, x:130,y:0,  w:130, h:60},
-  {no:3, x:0,  y:180,w:130, h:60},
-  {no:4, x:130,y:180,w:130, h:60},
-  {no:5, x:0,  y:360,w:130, h:60},
-  {no:6, x:130,y:360,w:130, h:60},
-  {no:7, x:0,  y:540,w:130, h:60},
-  // 우측 열 (가로형 2인 데스크 × 4줄)
-  {no:8, x:410,y:50, w:130, h:60},
-  {no:9, x:540,y:50, w:130, h:60},
-  {no:10,x:410,y:220,w:130, h:60},
-  {no:11,x:540,y:220,w:130, h:60},
-  {no:12,x:410,y:280,w:130, h:60},
-  {no:13,x:540,y:280,w:130, h:60},
-  {no:14,x:410,y:440,w:130, h:60},
-  {no:15,x:540,y:440,w:130, h:60},
-  // 중앙 세로 스택 (회전형 2개)
-  {no:16,x:380,y:640,w:60, h:130},
-  {no:17,x:380,y:770,w:60, h:130},
-  // 우측 세로 스택 (회전형 3개)
-  {no:18,x:610,y:510,w:60, h:130},
-  {no:19,x:610,y:640,w:60, h:130},
-  {no:20,x:610,y:770,w:60, h:130},
+  // 좌측 열 (가로형 2인 데스크 × 3줄 + 1인 데스크 1개) — 변경 없음 (좌측 x=0 기준이라 영향 없음)
+  {no:1, x:0,  y:0,  w:120, h:60},
+  {no:2, x:120,y:0,  w:120, h:60},
+  {no:3, x:0,  y:180,w:120, h:60},
+  {no:4, x:120,y:180,w:120, h:60},
+  {no:5, x:0,  y:360,w:120, h:60},
+  {no:6, x:120,y:360,w:120, h:60},
+  {no:7, x:0,  y:540,w:120, h:60},
+  // 우측 열 (가로형 2인 데스크 × 4줄) — 새 우측 끝(x+w=600)에 맞춰 x 재계산
+  {no:8, x:360,y:80, w:120, h:60},
+  {no:9, x:480,y:80, w:120, h:60},
+  {no:10,x:360,y:240,w:120, h:60},
+  {no:11,x:480,y:240,w:120, h:60},
+  {no:12,x:360,y:300,w:120, h:60},
+  {no:13,x:480,y:300,w:120, h:60},
+  {no:14,x:360,y:460,w:120, h:60},
+  {no:15,x:480,y:460,w:120, h:60},
+  // 중앙 세로 스택 (회전형 2개) — 좌/우 열 사이 여백 중앙, 새 하단(y=900) 기준 재정렬
+  {no:16,x:320,y:660,w:60, h:120},
+  {no:17,x:320,y:780,w:60, h:120},
+  // 우측 세로 스택 (회전형 3개) — 새 우측 끝(x+w=600), 새 하단(y=900) 기준 재정렬
+  {no:18,x:540,y:540,w:60, h:120},
+  {no:19,x:540,y:660,w:60, h:120},
+  {no:20,x:540,y:780,w:60, h:120},
 ];
 
 // 테이블 번호 → 초기 배치 인원 (화면에 표시되지 않는 내부 매핑)
@@ -430,7 +431,7 @@ function loadState() {
     desks={}; (d.desks||[]).forEach(dk=>desks[dk.id]=dk);
     s2c=d.s2c||{}; c2s=d.c2s||{}; cNm=d.cNm||{}; cGrp=d.cGrp||{};
     deskUid=d.deskUid||0; slotUid=d.slotUid||0; cN=d.cN||0;
-    SNAP=d.snap||10; FP_W=d.fpW||670; FP_H=d.fpH||840;
+    SNAP=d.snap||10; FP_W=d.fpW||600; FP_H=d.fpH||900;
     if(d.groupColors) GROUP_COLORS={...GROUP_COLORS, ...d.groupColors};
     return Object.keys(desks).length>0;
   } catch(e){return false;}
@@ -895,17 +896,46 @@ function handleCtrlBlur(type) {
 }
 
 function updateSnap(v){
-  const ns=clamp(Math.round(v/10)*10,10,100);
-  if(ns===SNAP){updateCtrlUI();return;}
-  const ratio=ns/SNAP;
+  const ns=clamp(Math.round(v/10)*10,10,200);
+  if(ns===SNAP){ updateCtrlUI(); return; }
+  SNAP=ns;
+  // 크기(w,h)는 그대로 두고, 위치(x,y)만 새 그리드 선에 맞춰 재정렬
   Object.values(desks).forEach(d=>{
-    const nw=Math.max(MIN_W,snapTo(d.w*ratio,ns));
-    const nh=Math.max(MIN_H,snapTo(d.h*ratio,ns));
-    d.x=clamp(snapTo(d.x*ratio,ns),0,FP_W-nw);
-    d.y=clamp(snapTo(d.y*ratio,ns),0,FP_H-nh);
+    d.x=clamp(snap(d.x),0,FP_W-d.w);
+    d.y=clamp(snap(d.y),0,FP_H-d.h);
+  });
+  render();
+}
+
+// 원래 가로:세로 비율을 최대한 유지하면서, 그리드(SNAP) 배수인 (w,h) 쌍을 찾음
+function bestSnapSize(w,h){
+  const ratio = w/h;
+
+  // 후보 A: 가로를 먼저 그리드에 맞추고, 세로는 비율에 맞춰 계산 후 재스냅
+  let wA = Math.max(MIN_W, snapTo(w,SNAP));
+  let hA = Math.max(MIN_H, snapTo(wA/ratio,SNAP));
+
+  // 후보 B: 세로를 먼저 그리드에 맞추고, 가로는 비율에 맞춰 계산 후 재스냅
+  let hB = Math.max(MIN_H, snapTo(h,SNAP));
+  let wB = Math.max(MIN_W, snapTo(hB*ratio,SNAP));
+
+  // 원래 비율과 더 가까운 후보를 선택
+  const diffA = Math.abs((wA/hA) - ratio);
+  const diffB = Math.abs((wB/hB) - ratio);
+  return diffA <= diffB ? {w:wA,h:hA} : {w:wB,h:hB};
+}
+
+// 모든 데스크의 x,y,w,h를 현재 SNAP 그리드에 맞춰 재정렬 (버튼으로 수동 실행)
+function snapAllDesks(){
+  if(!Object.keys(desks).length) return;
+  pushUndo();
+  Object.values(desks).forEach(d=>{
+    const {w:nw,h:nh} = bestSnapSize(d.w,d.h);
+    d.x=clamp(snap(d.x),0,FP_W-nw);
+    d.y=clamp(snap(d.y),0,FP_H-nh);
     d.w=nw; d.h=nh;
   });
-  SNAP=ns; render();
+  render();
 }
 
 function updateFpW(cells){FP_W=clamp(Math.round(cells),1,500)*SNAP;Object.values(desks).forEach(d=>{d.x=clamp(d.x,0,FP_W-d.w);});render();}
@@ -932,7 +962,7 @@ function doReset(){
 function doFullReset(){
   if(!confirm('데스크 배치까지 완전히 초기화할까요? 이동/크기조정한 내용이 모두 사라집니다.')) return;
   pushUndo();
-  SNAP = 10; FP_W = 670; FP_H = 900;   // 기본 그리드/해상도 값과 동일하게 맞춰줘야 함
+  SNAP = 10; FP_W = 600; FP_H = 900;   // 기본 그리드/해상도 값과 동일하게 맞춰줘야 함
   initState();
   render();
 }
