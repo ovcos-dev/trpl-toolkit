@@ -29,7 +29,7 @@ button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cur
 .ctrl-unit{color:#3a4a5a;font-size:10px}
 
 /* ── Board layout (풀 + 캔버스 나란히) ──────────────────────────────── */
-.board-row{display:flex;align-items:flex-start;justify-content:center;gap:12px}
+.board-row{display:flex;align-items:flex-start;gap:12px;width:fit-content;margin:0 auto}
 
 /* ── Canvas ──────────────────────────────────────────────────────────── */
 .canvas-wrap{margin:0;background:#0e1320;border-radius:10px;padding:10px;overflow-x:auto;overflow-y:visible;flex:0 0 auto}
@@ -45,7 +45,9 @@ button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cur
 .dg{
   position:absolute;background:rgba(10,18,44,.9);
   border:2px solid rgba(200,220,255,.65);
-  border-radius:3px;z-index:2;user-select:none;
+  border-radius:3px;z-index:2;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  touch-action:none;
   transition:border-color .1s,box-shadow .1s;overflow:hidden;
   cursor:grab; /* 테두리 끌기 대상 표시 */
 }
@@ -84,7 +86,9 @@ button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cur
   background:#091640;border:1px solid #163a8a;border-radius:2px;
   display:flex;align-items:center;justify-content:center;
   font-size:11px;font-weight:500;color:#7eb8f7;
-  cursor:grab;user-select:none;z-index:3;
+  cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  touch-action:none;
+  z-index:3;
   transition:background .12s,border-color .12s;overflow:hidden;
 }
 .card span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:calc(100% - 14px);pointer-events:none}
@@ -114,7 +118,7 @@ button{padding:6px 12px;border-radius:5px;font-size:12px;font-family:inherit;cur
 .del-btn:hover{color:rgba(255,100,100,.9)}
 .card:hover .del-btn{display:flex}
 .selmode .card .del-btn{display:none!important}
-.card-inp{width:100%;background:transparent;border:none;outline:none;color:#c8e8ff;font-size:11px;font-family:inherit;text-align:center;cursor:text;padding:0 2px;min-width:0}
+.card-inp{width:100%;background:transparent;border:none;outline:none;color:#c8e8ff;font-size:11px;font-family:inherit;text-align:center;cursor:text;padding:0 2px;min-width:0;user-select:text;-webkit-user-select:text;-webkit-touch-callout:default;touch-action:auto}
 .card.vert .card-inp{writing-mode:vertical-lr;text-orientation:upright;height:100%;width:auto}
 
 /* ── Pool (좌측 사이드바) ────────────────────────────────────────────── */
@@ -236,7 +240,8 @@ let SNAP = 10;
 let FP_W = 670;
 let FP_H = 900;
 const HDR = 22, PAD = 4, MIN_W = 60, MIN_H = 40;
-const LS_KEY = 'vi-seating-v10';
+const LS_KEY = 'vi-seating-v11';
+  
 
 // ── 초기 데이터 (그룹별) ─────────────────────────────────────────────────
 const NAMES = {
@@ -247,7 +252,7 @@ const GROUP_ORDER = ['트램폴린','파프리카']; // 풀 영역 표시 순서
 const GROUP_KEY = {'트램폴린':'tramp','파프리카':'paprika'}; // CSS 변수/저장용 내부 키
 
 // 그룹별 기준 색상 (컬러피커로 선택한 값). 배경/테두리/글자/hover는 이 값에서 자동 계산됨
-let GROUP_COLORS = { tramp:'#2563eb', paprika:'#d9601f' };
+let GROUP_COLORS = { tramp:'#A88861', paprika:'#8A6799' };
 
 // ── 색상 유틸 ────────────────────────────────────────────────────────────
 function hexToRgb(hex){
